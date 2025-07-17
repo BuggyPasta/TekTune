@@ -250,7 +250,7 @@ function renderEditor({ title, content }) {
   });
 
   // Save handler
-  onSave = async function () {
+  window.onSave = async function () {
     const newTitle = titleInput.value.trim();
     if (!/^[A-Za-z0-9 ]+$/.test(newTitle)) {
       alert('Title can only contain letters, numbers, and spaces.');
