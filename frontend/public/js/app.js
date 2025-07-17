@@ -194,20 +194,64 @@ function renderEditor({ title, content }) {
   const toolbar = document.createElement('div');
   toolbar.className = 'editor-toolbar';
   toolbar.innerHTML = `
-    <button type="button" data-cmd="h1"><b>H1</b></button>
-    <button type="button" data-cmd="h2"><b>H2</b></button>
-    <button type="button" data-cmd="h3"><b>H3</b></button>
-    <button type="button" data-cmd="bold"><b>B</b></button>
-    <button type="button" data-cmd="italic"><i>I</i></button>
-    <button type="button" data-cmd="underline"><u>U</u></button>
-    <button type="button" data-cmd="code">&lt;/&gt;</button>
-    <button type="button" data-cmd="warning">&#9888;</button>
-    <button type="button" data-cmd="link">🔗</button>
-    <button type="button" data-cmd="ol">1.</button>
-    <button type="button" data-cmd="ul">•</button>
-    <button type="button" data-cmd="image">🖼️</button>
-    <button type="button" data-cmd="quote">❝</button>
-    <button type="button" data-cmd="hr">―</button>
+    <div class="toolbar-grid">
+      <button type="button" data-cmd="h1" aria-label="Heading 1">
+        <span class="toolbar-icon">H1</span>
+        <span class="toolbar-label">heading 1</span>
+      </button>
+      <button type="button" data-cmd="h2" aria-label="Heading 2">
+        <span class="toolbar-icon">H2</span>
+        <span class="toolbar-label">heading 2</span>
+      </button>
+      <button type="button" data-cmd="h3" aria-label="Heading 3">
+        <span class="toolbar-icon">H3</span>
+        <span class="toolbar-label">heading 3</span>
+      </button>
+      <button type="button" data-cmd="bold" aria-label="Bold">
+        <span class="toolbar-icon"><b>B</b></span>
+        <span class="toolbar-label">bold</span>
+      </button>
+      <button type="button" data-cmd="italic" aria-label="Italic">
+        <span class="toolbar-icon"><i>I</i></span>
+        <span class="toolbar-label">italic</span>
+      </button>
+      <button type="button" data-cmd="underline" aria-label="Underline">
+        <span class="toolbar-icon"><u>U</u></span>
+        <span class="toolbar-label">underline</span>
+      </button>
+      <button type="button" data-cmd="code" aria-label="Code block">
+        <span class="toolbar-icon">&lt;/&gt;</span>
+        <span class="toolbar-label">code</span>
+      </button>
+      <button type="button" data-cmd="warning" aria-label="Warning box">
+        <span class="toolbar-icon">&#9888;</span>
+        <span class="toolbar-label">warning</span>
+      </button>
+      <button type="button" data-cmd="link" aria-label="Link">
+        <span class="toolbar-icon">🔗</span>
+        <span class="toolbar-label">link</span>
+      </button>
+      <button type="button" data-cmd="ol" aria-label="Numbered list">
+        <span class="toolbar-icon">1.</span>
+        <span class="toolbar-label">numbered</span>
+      </button>
+      <button type="button" data-cmd="ul" aria-label="Bullet list">
+        <span class="toolbar-icon">•</span>
+        <span class="toolbar-label">bullets</span>
+      </button>
+      <button type="button" data-cmd="image" aria-label="Image">
+        <span class="toolbar-icon">🖼️</span>
+        <span class="toolbar-label">image</span>
+      </button>
+      <button type="button" data-cmd="quote" aria-label="Quote">
+        <span class="toolbar-icon">❝</span>
+        <span class="toolbar-label">quote</span>
+      </button>
+      <button type="button" data-cmd="hr" aria-label="Horizontal rule">
+        <span class="toolbar-icon">―</span>
+        <span class="toolbar-label">divider</span>
+      </button>
+    </div>
   `;
   area.appendChild(toolbar);
   console.log('Toolbar appended');
@@ -255,41 +299,58 @@ function renderEditor({ title, content }) {
   // Save handler
   window.onSave = async function () {
     const newTitle = titleInput.value.trim();
+    const md = toMarkdown(editor);
+    console.log('Save button clicked');
+    console.log('Saving article with title:', newTitle);
+    console.log('Content:', md);
     if (!/^[A-Za-z0-9 ]+$/.test(newTitle)) {
       alert('Title can only contain letters, numbers, and spaces.');
       return;
     }
-    const md = toMarkdown(editor);
     if (state.mode === 'add') {
-      const res = await fetch(`${API_BASE}/articles`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: newTitle, content: md })
-      });
-      if (res.ok) {
-        state.mode = 'view';
-        state.selected = newTitle;
-        await fetchArticles();
-        selectArticle(newTitle);
-      } else {
-        const err = await res.json();
-        alert(err.error || 'Failed to create article');
+      try {
+        const res = await fetch(`${API_BASE}/articles`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: newTitle, content: md })
+        });
+        console.log('POST /api/articles response:', res);
+        if (res.ok) {
+          state.mode = 'view';
+          state.selected = newTitle;
+          await fetchArticles();
+          selectArticle(newTitle);
+        } else {
+          const err = await res.json();
+          console.error('Error creating article:', err);
+          alert(err.error || 'Failed to create article');
+        }
+      } catch (e) {
+        console.error('Network or JS error during save:', e);
+        alert('Network or JS error during save');
       }
     } else if (state.mode === 'edit') {
-      const oldFilename = state.selected.replace(/ /g, '_') + '.txt';
-      const res = await fetch(`${API_BASE}/articles/${oldFilename}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: newTitle, content: md })
-      });
-      if (res.ok) {
-        state.mode = 'view';
-        state.selected = newTitle;
-        await fetchArticles();
-        selectArticle(newTitle);
-      } else {
-        const err = await res.json();
-        alert(err.error || 'Failed to update article');
+      try {
+        const oldFilename = state.selected.replace(/ /g, '_') + '.txt';
+        const res = await fetch(`${API_BASE}/articles/${oldFilename}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: newTitle, content: md })
+        });
+        console.log('PUT /api/articles response:', res);
+        if (res.ok) {
+          state.mode = 'view';
+          state.selected = newTitle;
+          await fetchArticles();
+          selectArticle(newTitle);
+        } else {
+          const err = await res.json();
+          console.error('Error updating article:', err);
+          alert(err.error || 'Failed to update article');
+        }
+      } catch (e) {
+        console.error('Network or JS error during update:', e);
+        alert('Network or JS error during update');
       }
     }
   };

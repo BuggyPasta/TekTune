@@ -370,4 +370,58 @@ hr {
   border: none;
   border-top: 2px solid var(--line-highlight-alt);
   margin: 1.5em 0;
+}
+
+/* WYSIWYG Toolbar Grid */
+.toolbar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.5em;
+  width: 100%;
+  margin-bottom: 0.2em;
+}
+@media (max-width: 900px) {
+  .toolbar-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+@media (max-width: 600px) {
+  .toolbar-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+.toolbar-grid button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  min-width: 0;
+  background: var(--line-highlight-alt);
+  color: var(--text-main);
+  border: none;
+  border-radius: 6px;
+  padding: 0.5em 0.2em 0.3em 0.2em;
+  font-size: 1em;
+  cursor: pointer;
+  transition: background var(--transition);
+  height: 70px;
+}
+.toolbar-grid button:hover {
+  background: var(--accent);
+  color: #fff;
+}
+.toolbar-icon {
+  font-size: 1.3em;
+  margin-bottom: 0.2em;
+  display: block;
+}
+.toolbar-label {
+  font-size: 0.85em;
+  color: var(--text-main);
+  text-align: center;
+  text-transform: lowercase;
+  line-height: 1.1;
+  word-break: break-word;
+  display: block;
 } 
