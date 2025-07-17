@@ -1,2 +1,3 @@
 # TekTune backend requirements
-Flask 
+Flask
+flask-cors 
