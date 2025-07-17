@@ -1,0 +1,13 @@
+services:
+  tektune:
+    container_name: tektune
+    build:
+      context: https://github.com/BuggyPasta/TekTune.git
+    ports:
+      - "3600:3600"
+    volumes:
+      - /home/alex/docker_backup/tektune/articles:/data/tektune/articles
+      - /home/alex/docker_backup/tektune/images:/data/tektune/images
+    labels:
+      com.centurylinklabs.watchtower.enable: "false"
+    restart: unless-stopped 

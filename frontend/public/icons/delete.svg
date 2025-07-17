@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 800 800" xml:space="preserve">
+  <style type="text/css">
+    .st0{fill:none;stroke:#000000;stroke-width:35;stroke-linecap:round;stroke-linejoin:round;}
+  </style>
+  <g>
+    <path class="st0" d="M311.3,358.7v221.9"/>
+    <path class="st0" d="M488.7,358.7v221.9"/>
+    <path class="st0" d="M45,219.4h710"/>
+    <path class="st0" d="M133.8,270v355c0,73.5,59.6,133.1,133.1,133.1h266.2c73.5,0,133.1-59.6,133.1-133.1V270"/>
+    <path class="st0" d="M266.9,130.7c0-49,39.7-88.7,88.7-88.7h88.7c49,0,88.7,39.7,88.7,88.7v88.7H266.9V130.7z"/>
+  </g>
+</svg>

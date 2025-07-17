@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TekTune</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <!-- Prism.js CSS for syntax highlighting -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
+</head>
+<body>
+  <div id="app">
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <img src="./icons/tektune.svg" alt="TekTune Logo" class="logo" />
+        <span class="app-name">TekTune</span>
+      </div>
+      <div class="top-bar-right" id="action-buttons">
+        <!-- Action buttons will be rendered here by JS -->
+      </div>
+    </header>
+    <main class="main-layout">
+      <aside class="sidebar" id="article-index">
+        <!-- Article index will be rendered here by JS -->
+      </aside>
+      <section class="content" id="content-area">
+        <!-- Article content or editor will be rendered here by JS -->
+      </section>
+    </main>
+  </div>
+  <!-- Marked.js for Markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <!-- Prism.js for syntax highlighting -->
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-markdown.min.js"></script>
+  <script src="../js/app.js"></script>
+</body>
+</html> 

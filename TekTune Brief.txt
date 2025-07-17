@@ -1,0 +1,148 @@
+TekTune - Simple Documentation App Development Brief
+Project Overview
+Create a dead-simple, no-frills documentation application called TekTune that runs reliably on Debian 12. This is a single-user, LAN-only application with no security requirements, no user management, and no bloat.
+Technical Requirements
+Environment & Deployment
+    � Host OS: Debian 12 headless machine
+    � Deployment: Docker container via Dockge
+    � Base Image: Debian-based (NOT Alpine) to match host OS
+    � Port: Container port 3600
+    � Backend: Node.js/Express or Python/Flask (your choice)
+    � No Database: All data stored as individual .txt files
+    � The docker-compose file should contain:
+      context: https://github.com/BuggyPasta/TekTune.git
+in order to ensure deployment and ALL required files are downloaded from GitHub
+    � There should be no need to create ANY files in the host, everything should be taken care of by the dockerfile and the files in Github.
+Persistent Storage
+    � Container path: /data/tektune
+    � Host bind path: /home/alex/docker_backup/tektune (auto-created by Dockge)
+    � Storage format: One .txt file per article. No settings file, no database.
+    � File naming: Replace spaces with underscores (e.g., "CCTV Raspberry Pi" ? "CCTV_Raspberry_Pi.txt")
+User Interface Specifications
+Layout Structure
+    � Top bar: Full-width header containing logo (tektune.svg), app name, and action buttons
+    � Two-column layout below: 
+        ? Left column: Article index (narrower)
+        ? Right column: Article content display (much wider)
+Top Bar Elements
+Left side:
+    � tektune.svg icon + "TekTune" app name
+Right side - Default state (3 buttons in one line):
+    � Add Article: add.svg + "Add Article" text
+    � Edit: edit.svg + "Edit" text
+    � Delete: delete.svg + "Delete" text
+Right side - Edit/Add state (1 button):
+    � Save: save.svg + "Save" text
+    � (Add, Edit, Delete buttons disappear during editing)
+Left Column (Article Index)
+    � Display all articles as buttons (not plain text)
+    � One article per row, stacked vertically
+    � Text wrapping: If title doesn't fit column width, wrap text to show full title
+    � Clicking an article button loads it in the right column (read-only mode)
+Right Column (Content Display)
+    � Default: Read-only article content
+    � Edit mode: WYSIWYG editor with toolbar
+    � Add mode: Empty editor for new article
+Article Management
+Adding Articles:
+    � Click "Add Article" ? Right column shows empty editor with Title field + content area
+    � Right under the title field, but above the content area the WYSIWYG toolbar should appear
+    � The important icons to show in this bar are:
+    � Heading 1, 2, 3
+    � Bold, Italic, Underline
+    � Code box (which when the article is displayed on the read-only mode will allow me to copy the content of the box to paste in terminal)
+    � Warning box icon which will create a warning box around a text I select before I click on the warning box icon. This warning box should have a formatting that will make it prominent, but not a larger font than the rest of the text. Being prominent is important. It could be white text on red background
+    � Top bar during adding or editing shows only the "Save" button
+    � After saving ? Return to default state, new article appears in left column
+Editing Articles:
+    � Click "Edit" ? Current article becomes editable
+    � Top bar shows only "Save" button
+    � Title changes rename the .txt file automatically on save
+Deleting Articles:
+    � Click "Delete" ? Modal popup: "Are you sure you want to delete the article [ARTICLE NAME HERE]? This action is NOT reversible, you WILL lose this data forever."
+    � Confirm deletion removes .txt file permanently
+WYSIWYG Editor Requirements
+Title field restrictions:
+    � Only letters, spaces, numbers (English only)
+    � No symbols allowed
+    � When saving, spaces in the Title are to be converted to underscores in filename, but NOT on the Title itself.
+User Experience Features
+    � Browser close protection: In edit mode, warn user about unsaved changes with options to save or discard
+    � Responsive design: 
+        ? Desktop: Logo/name left, buttons right aligned
+        ? Mobile: Buttons stack vertically under logo/name
+    � Button styling everywhere in the app: 10px rounded edges, icon left + text right (never under icon)
+Initial App State Behavior
+First Time Opening (No Articles Exist)
+Left sidebar: Show "No articles found" or "Create your first article" message with subtle call-to-action styling
+Right content area: Display welcome message:
+
+Opening after at least one article has been created
+Left sidebar: Show the list of icons as normal as explained earlier
+Right content area: Display the message "Choose from an article on the list to begin"
+
+COLOURS
+General interface: Dark Gray + Soft Blue Tones * Background Color: #2E2E2E (dark gray) * Text Color: #E5E5E5 (very light gray for a soft reading experience) * Accent Color: #00A9E0 (soothing cyan for headers, links, or buttons) * Link/Interactive Elements: #42A5F5 (light blue for clickable links or actions)
+    1. Editing Mode:
+    2. Background Color: #2A2A2A (dark gray with a subtle hint of brown or green for warmth) 
+        ? Why: This background is still dark enough to minimize glare, but it�s not as harsh as pure black. The slight warmth keeps the interface inviting.
+    3. Main Text Color: #E5E5E5 (light gray) 
+        ? Why: This offers good contrast with the background and is easy on the eyes, without the starkness of pure white. It�s clear for readability but soft enough for long-term use.
+    4. Cursor Color: #A3D9FF (light cyan) 
+        ? Why: A bright color like cyan stands out well against dark backgrounds, making the cursor easily visible without being jarring. It�s a good choice for navigation in an editor.
+    5. Selection Background: #64B5F6 (light blue) 
+        ? Why: A soft blue color for selections makes it clear where the user is interacting with the text, while still staying in the soft blue tone that�s easy on the eyes.
+    6. Line Highlight: #3A3A3A (darker gray or muted black) or #5C5C5C (lightly darker than background) 
+        ? Why: Highlighting the current line or active area slightly darker than the background helps keep the user�s focus but doesn�t cause distraction.
+    7. Syntax Highlighting (optional): 
+        ? Keywords: #F4A261 (soft orange for clarity)
+        ? Variables/Strings: #A3D9FF (soft cyan, maintaining the blue tones)
+        ? Comments: #B0BEC5 (light gray or silver for a subtle distinction)
+        ? Why: These colors keep the syntax distinct while maintaining the overall comfort of the soft blue and gray theme.
+    8. Viewing Mode:
+    9. Background Color: #1C1C1C (slightly lighter than editing, dark gray) 
+        ? Why: A slightly lighter background for viewing mode can help make the text stand out more clearly, improving legibility. It�s still dark enough to minimize strain but makes reading easier.
+    10. Main Text Color: #E0E0E0 (soft gray) 
+        ? Why: This is soft enough to reduce eye strain during long reading sessions. It still contrasts well enough against the background to be legible but avoids the stark white color.
+    11. Link Text Color: #64B5F6 (light blue) 
+        ? Why: A blue accent for links provides clarity and distinction without being too jarring or harsh, fitting perfectly with the overall theme.
+    12. Selection Background: #64B5F6 (light blue, same as editing mode) 
+        ? Why: Keeping the selection background consistent with the editing mode makes the transition seamless and visually familiar.
+    13. Line Highlight (Active Line): #424242 (dark gray) 
+        ? Why: A lighter gray than the background for the active line keeps it unobtrusive but gives a slight indication of focus without being too intense.
+    14. Syntax Highlighting (optional for viewing mode): 
+        ? Keywords: #F4A261 (soft amber/orange, distinct but calm)
+        ? Variables/Strings: #A3D9FF (soft cyan for readability)
+        ? Comments: #B0BEC5 (light gray for subtle contrast) Additional Considerations:
+    15. Text Wrapping/Line Breaks: A soft #484848 (grayish) for line break indicators or soft, non-intrusive guides.
+    16. Spacing: Make sure there�s plenty of line height (e.g., 1.4x line height) for easy reading and preventing visual fatigue.
+ICONS
+I will provide all the svg icons for the program, just tell me which folder in the codebase they need to be under. Do not offer to create the svg icons, they are ready to use.
+
+GENERAL NOTES
+Do not try to run any code locally where you are installed, as everything is deployed on a different machine. Just tell me what needs to be done and I will do it.
+You are allowed and encouraged to create or edit or delete files in the codebase as needed.
+Do not assume anything, if you want to know something you must ask me.
+Do not start producing any code unless you first ask me and I approve it.
+Do not overengineer anything.
+Do not add functionality that I haven�t explicitly requested.
+If you think something is missing, or something would work better as an alternative, do not implement it, but DO inform me so I can choose if I want it added or not.
+
+Decisions & Implementation Details (as of project planning)
+----------------------------------------------------------
+1. Backend: Python/Flask will be used for the backend API and file operations.
+2. Frontend: Vanilla JS with a custom-built WYSIWYG editor, matching all toolbar and formatting requirements in this brief.
+3. WYSIWYG Toolbar: Toolbar will include Heading 1, 2, 3; Bold, Italic, Underline; Code box; Warning box; Link; Numbered list; Bullet list; Image; Quote; Horizontal rule. Images will be stored in /data/tektune/images/ and articles in /data/tektune/articles/.
+4. Code Block Copy: In read-only mode, each code block will have a 'copy' button with the copy.svg icon and the word 'Copy' to its right, for easy copying to clipboard.
+5. Syntax Highlighting: Code blocks in read-only mode will have syntax highlighting for better readability.
+6. SVG Icon Path: All SVG icons should be placed in frontend/public/icons/.
+7. Docker Compose: The docker-compose.yml will include a label to prevent Watchtower from updating this container:
+
+    labels:
+      com.centurylinklabs.watchtower.enable: "false"
+
+8. CSS Customization: All formatting (headings, code, warning box, etc.) will be controlled via frontend/css/style.css for easy editing. You can change fonts, colors, and sizes for headings, code, warning boxes, and more.
+9. Markdown Storage: Articles are stored as Markdown in .txt files. If the app dies, these files remain readable/editable with any text editor.
+10. No tests/CI, no extra features beyond what is described here and in the original brief.
+
+Relevant sections above are updated for accuracy. All other requirements and UI/UX details from the original brief remain in effect unless superseded by the above decisions.
