@@ -31,9 +31,21 @@ def allowed_image_file(filename):
     return '.' in filename and \
         filename.rsplit('.', 1)[1].lower() in ALLOWED_IMAGE_EXTENSIONS
 
+# Serve index.html at root
 @app.route('/')
 def index():
-    return app.send_static_file('index.html')
+    return send_from_directory(app.static_folder, 'index.html')
+
+# Serve static files and fallback to index.html for SPA (except /api and /images)
+@app.route('/<path:path>')
+def static_proxy(path):
+    file_path = os.path.join(app.static_folder, path)
+    if os.path.isfile(file_path):
+        return send_from_directory(app.static_folder, path)
+    else:
+        if not path.startswith('api') and not path.startswith('images'):
+            return send_from_directory(app.static_folder, 'index.html')
+        abort(404)
 
 @app.route('/api/articles', methods=['GET'])
 def list_articles():
