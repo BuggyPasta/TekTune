@@ -2,6 +2,9 @@
 
 const API_BASE = '/api';
 
+// Always define window.onSave as a no-op to avoid ReferenceError
+window.onSave = () => {};
+
 const state = {
   articles: [],
   selected: null,
@@ -17,7 +20,7 @@ function renderTopBar() {
   const right = $('action-buttons');
   right.innerHTML = '';
   if (state.mode === 'add' || state.mode === 'edit') {
-    right.appendChild(actionButton('save', 'Save', onSave));
+    right.appendChild(actionButton('save', 'Save', window.onSave));
   } else {
     right.appendChild(actionButton('add', 'Add Article', onAdd));
     if (state.selected) {
