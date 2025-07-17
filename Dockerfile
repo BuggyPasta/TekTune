@@ -14,7 +14,7 @@ RUN ls -l /app/frontend/public/
 
 EXPOSE 3600
 
-# Create persistent storage directories
-RUN mkdir -p /data/tektune/articles /data/tektune/images
+# Create persistent storage directory
+RUN mkdir -p /data/tektune
 
 CMD ["python", "backend/app.py"] 

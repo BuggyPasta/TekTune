@@ -5,8 +5,7 @@ from flask import Flask, request, jsonify, send_from_directory, abort
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 
-ARTICLES_DIR = '/data/tektune/articles'
-IMAGES_DIR = '/data/tektune/images'
+BASE_DIR = '/data/tektune'
 ALLOWED_IMAGE_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 
 logging.basicConfig(level=logging.DEBUG)
@@ -19,12 +18,16 @@ CORS(app)
 
 logger.info(f"Flask static_folder is: {app.static_folder}")
 
-# Ensure storage directories exist
-os.makedirs(ARTICLES_DIR, exist_ok=True)
-os.makedirs(IMAGES_DIR, exist_ok=True)
+# Ensure base directory exists
+os.makedirs(BASE_DIR, exist_ok=True)
 
-# Helper: sanitize title for filename
+# Helper: sanitize title for folder/filename
 TITLE_REGEX = re.compile(r'^[A-Za-z0-9 ]+$')
+def title_to_folder(title):
+    if not TITLE_REGEX.match(title):
+        return None
+    return title.replace(' ', '_')
+
 def title_to_filename(title):
     if not TITLE_REGEX.match(title):
         return None
@@ -78,21 +81,29 @@ def static_proxy(path):
 
 @app.route('/api/articles', methods=['GET'])
 def list_articles():
-    files = [f for f in os.listdir(ARTICLES_DIR) if f.endswith('.txt')]
-    articles = [filename_to_title(f) for f in files]
+    # List all folders in BASE_DIR that contain a .txt file
+    articles = []
+    for folder in os.listdir(BASE_DIR):
+        folder_path = os.path.join(BASE_DIR, folder)
+        if os.path.isdir(folder_path):
+            txts = [f for f in os.listdir(folder_path) if f.endswith('.txt')]
+            if txts:
+                articles.append(filename_to_title(txts[0]))
     articles.sort(key=lambda x: x.lower())
     return jsonify(articles)
 
-@app.route('/api/articles/<filename>', methods=['GET'])
-def get_article(filename):
-    if not filename.endswith('.txt'):
-        filename += '.txt'
-    path = os.path.join(ARTICLES_DIR, filename)
-    if not os.path.isfile(path):
+@app.route('/api/articles/<title>', methods=['GET'])
+def get_article(title):
+    folder = title_to_folder(title)
+    if not folder:
+        return abort(400)
+    folder_path = os.path.join(BASE_DIR, folder)
+    txt_file = os.path.join(folder_path, folder + '.txt')
+    if not os.path.isfile(txt_file):
         return abort(404)
-    with open(path, 'r', encoding='utf-8') as f:
+    with open(txt_file, 'r', encoding='utf-8') as f:
         content = f.read()
-    return jsonify({'title': filename_to_title(filename), 'content': content})
+    return jsonify({'title': title, 'content': content})
 
 @app.route('/api/articles', methods=['POST'])
 def create_article():
@@ -101,44 +112,61 @@ def create_article():
     content = data.get('content', '')
     if not TITLE_REGEX.match(title):
         return jsonify({'success': False, 'error': 'Invalid title'}), 400
-    filename = title_to_filename(title)
-    path = os.path.join(ARTICLES_DIR, filename)
-    if os.path.exists(path):
+    folder = title_to_folder(title)
+    folder_path = os.path.join(BASE_DIR, folder)
+    if os.path.exists(folder_path):
         return jsonify({'success': False, 'error': 'Article already exists'}), 409
-    with open(path, 'w', encoding='utf-8') as f:
+    os.makedirs(folder_path, exist_ok=True)
+    txt_file = os.path.join(folder_path, folder + '.txt')
+    with open(txt_file, 'w', encoding='utf-8') as f:
         f.write(content)
     return jsonify({'success': True})
 
-@app.route('/api/articles/<filename>', methods=['PUT'])
-def update_article(filename):
+@app.route('/api/articles/<old_title>', methods=['PUT'])
+def update_article(old_title):
     data = request.json
     new_title = data.get('title', '').strip()
     content = data.get('content', '')
     if not TITLE_REGEX.match(new_title):
         return jsonify({'success': False, 'error': 'Invalid title'}), 400
-    new_filename = title_to_filename(new_title)
-    old_path = os.path.join(ARTICLES_DIR, filename if filename.endswith('.txt') else filename + '.txt')
-    new_path = os.path.join(ARTICLES_DIR, new_filename)
-    if not os.path.exists(old_path):
+    old_folder = title_to_folder(old_title)
+    new_folder = title_to_folder(new_title)
+    old_folder_path = os.path.join(BASE_DIR, old_folder)
+    new_folder_path = os.path.join(BASE_DIR, new_folder)
+    old_txt = os.path.join(old_folder_path, old_folder + '.txt')
+    new_txt = os.path.join(new_folder_path, new_folder + '.txt')
+    if not os.path.exists(old_txt):
         return jsonify({'success': False, 'error': 'Article not found'}), 404
-    if old_path != new_path and os.path.exists(new_path):
+    if old_folder != new_folder and os.path.exists(new_folder_path):
         return jsonify({'success': False, 'error': 'Target article already exists'}), 409
-    with open(new_path, 'w', encoding='utf-8') as f:
+    # If renaming, move folder and .txt file
+    if old_folder != new_folder:
+        os.rename(old_folder_path, new_folder_path)
+    # Write content to new .txt file
+    with open(new_txt, 'w', encoding='utf-8') as f:
         f.write(content)
-    if old_path != new_path:
-        os.remove(old_path)
+    # Remove old .txt if it still exists (shouldn't, but for safety)
+    if old_txt != new_txt and os.path.exists(old_txt):
+        os.remove(old_txt)
     return jsonify({'success': True})
 
-@app.route('/api/articles/<filename>', methods=['DELETE'])
-def delete_article(filename):
-    path = os.path.join(ARTICLES_DIR, filename if filename.endswith('.txt') else filename + '.txt')
-    if not os.path.exists(path):
+@app.route('/api/articles/<title>', methods=['DELETE'])
+def delete_article(title):
+    folder = title_to_folder(title)
+    folder_path = os.path.join(BASE_DIR, folder)
+    if not os.path.exists(folder_path):
         return jsonify({'success': False, 'error': 'Article not found'}), 404
-    os.remove(path)
+    # Remove the entire folder and its contents
+    import shutil
+    shutil.rmtree(folder_path)
     return jsonify({'success': True})
 
-@app.route('/api/images', methods=['POST'])
-def upload_image():
+@app.route('/api/images/<title>', methods=['POST'])
+def upload_image(title):
+    folder = title_to_folder(title)
+    folder_path = os.path.join(BASE_DIR, folder)
+    if not os.path.exists(folder_path):
+        return jsonify({'success': False, 'error': 'Article folder not found'}), 404
     if 'file' not in request.files:
         return jsonify({'success': False, 'error': 'No file part'}), 400
     file = request.files['file']
@@ -147,21 +175,22 @@ def upload_image():
     if not allowed_image_file(file.filename):
         return jsonify({'success': False, 'error': 'Invalid file type'}), 400
     filename = secure_filename(file.filename)
-    save_path = os.path.join(IMAGES_DIR, filename)
+    save_path = os.path.join(folder_path, filename)
     # Avoid overwriting existing files: add a number if needed
     base, ext = os.path.splitext(filename)
     counter = 1
     while os.path.exists(save_path):
         filename = f"{base}_{counter}{ext}"
-        save_path = os.path.join(IMAGES_DIR, filename)
+        save_path = os.path.join(folder_path, filename)
         counter += 1
     file.save(save_path)
-    url = f"/images/{filename}"
+    url = f"/article_data/{folder}/{filename}"
     return jsonify({'success': True, 'url': url})
 
-@app.route('/images/<path:filename>')
-def serve_image(filename):
-    return send_from_directory(IMAGES_DIR, filename)
+@app.route('/article_data/<folder>/<filename>')
+def serve_image(folder, filename):
+    folder_path = os.path.join(BASE_DIR, folder)
+    return send_from_directory(folder_path, filename)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=3600) 

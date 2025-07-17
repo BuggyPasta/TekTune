@@ -6,8 +6,7 @@ services:
     ports:
       - "3600:3600"
     volumes:
-      - /home/alex/docker_backup/tektune/articles:/data/tektune/articles
-      - /home/alex/docker_backup/tektune/images:/data/tektune/images
+      - /home/alex/docker_backup/tektune:/data/tektune
     labels:
       com.centurylinklabs.watchtower.enable: "false"
     restart: unless-stopped 

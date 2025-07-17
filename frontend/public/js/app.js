@@ -10,6 +10,8 @@ const state = {
   selected: null,
   mode: 'view', // view | add | edit
   unsaved: false,
+  // Add new state for article creation step
+  creationStep: null, // null | 'title' | 'editor'
 };
 
 function $(id) {
@@ -19,6 +21,10 @@ function $(id) {
 function renderTopBar() {
   const right = $('action-buttons');
   right.innerHTML = '';
+  if (state.mode === 'add' && state.creationStep === 'title') {
+    // No buttons in topbar during title entry
+    return;
+  }
   if (state.mode === 'add' || state.mode === 'edit') {
     right.appendChild(actionButton('save', 'Save', window.onSave));
   } else {
@@ -105,7 +111,7 @@ async function renderContentArea(mode) {
     const data = await res.json();
     // Render Markdown to HTML
     const html = marked.parse(data.content);
-    area.innerHTML = `<h2>${data.title}</h2><div class="article-body">${html}</div>`;
+    area.innerHTML = `<div class='article-title'>${data.title}</div><div class="article-body">${html}</div>`;
     // Add copy buttons to code blocks
     addCopyButtons(area.querySelector('.article-body'));
     // Highlight code blocks
@@ -135,8 +141,10 @@ function addCopyButtons(container) {
     span.textContent = 'Copy';
     copyBtn.appendChild(span);
     copyBtn.onclick = () => {
+      let textToCopy = code.textContent;
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(code.textContent).then(() => {
+        // Remove line breaks for clipboard
+        navigator.clipboard.writeText(textToCopy.replace(/\n/g, ' ')).then(() => {
           copyBtn.classList.add('copied');
           span.textContent = 'Copied!';
           setTimeout(() => {
@@ -176,11 +184,67 @@ function addCopyButtons(container) {
 }
 
 function onAdd() {
-  console.log('onAdd called');
   state.mode = 'add';
   state.selected = null;
+  state.creationStep = 'title';
   renderTopBar();
-  renderEditor({ title: '', content: '' });
+  renderTitleInput();
+}
+
+function renderTitleInput() {
+  const area = $('content-area');
+  area.innerHTML = '';
+  const wrapper = document.createElement('div');
+  wrapper.className = 'title-input-wrapper';
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'large-title-input';
+  input.placeholder = 'Enter article title...';
+  input.maxLength = 100;
+  wrapper.appendChild(input);
+  const btnRow = document.createElement('div');
+  btnRow.className = 'title-btn-row';
+  const saveBtn = document.createElement('button');
+  saveBtn.textContent = 'Save';
+  saveBtn.className = 'title-save-btn';
+  const cancelBtn = document.createElement('button');
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.className = 'title-cancel-btn';
+  btnRow.appendChild(saveBtn);
+  btnRow.appendChild(cancelBtn);
+  wrapper.appendChild(btnRow);
+  area.appendChild(wrapper);
+  input.focus();
+  saveBtn.onclick = async () => {
+    const title = input.value.trim();
+    if (!title || !/^[A-Za-z0-9 ]+$/.test(title)) {
+      alert('Title is required, can only contain letters, numbers, and spaces, and must be at most 100 characters.');
+      return;
+    }
+    // Create article with empty content
+    const res = await fetch(`${API_BASE}/articles`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, content: '' })
+    });
+    if (res.ok) {
+      state.selected = title;
+      state.mode = 'add';
+      state.creationStep = 'editor';
+      renderTopBar();
+      renderEditor({ title, content: '' });
+    } else {
+      const err = await res.json();
+      alert(err.error || 'Failed to create article');
+    }
+  };
+  cancelBtn.onclick = () => {
+    state.mode = 'view';
+    state.selected = null;
+    state.creationStep = null;
+    renderTopBar();
+    renderSidebar();
+  };
 }
 
 function onEdit() {
@@ -201,6 +265,7 @@ async function fetchCurrentArticleForEdit() {
 }
 
 function renderEditor({ title, content }) {
+  state.creationStep = 'editor';
   console.log('renderEditor called', { title, content });
   const area = $('content-area');
   area.innerHTML = '';
@@ -305,12 +370,14 @@ function renderEditor({ title, content }) {
     }
   });
 
+  // Replace image upload logic:
+  // imgInput.addEventListener('change', ...)
   imgInput.addEventListener('change', async (e) => {
     const file = imgInput.files[0];
     if (!file) return;
     const formData = new FormData();
     formData.append('file', file);
-    const res = await fetch(`${API_BASE}/images`, { method: 'POST', body: formData });
+    const res = await fetch(`${API_BASE}/images/${title}`, { method: 'POST', body: formData });
     const data = await res.json();
     if (data.success) {
       insertAtCursor(editor, `![](${data.url})`);
@@ -328,11 +395,11 @@ function renderEditor({ title, content }) {
     console.log('Saving article with title:', newTitle);
     console.log('Content:', md);
     if (!newTitle) {
-      alert('Title is required and can only contain letters, numbers, and spaces.');
+      alert('Title is required, can only contain letters, numbers, and spaces, and must be at most 100 characters.');
       return;
     }
-    if (!/^[A-Za-z0-9 ]+$/.test(newTitle)) {
-      alert('Title is required and can only contain letters, numbers, and spaces.');
+    if (!/^[A-Za-z0-9 ]+$/.test(newTitle) || newTitle.length > 100) {
+      alert('Title is required, can only contain letters, numbers, and spaces, and must be at most 100 characters.');
       return;
     }
     if (state.mode === 'add') {
@@ -390,13 +457,13 @@ function handleToolbar(cmd, editor, imgInput) {
   document.execCommand('styleWithCSS', false, false);
   switch (cmd) {
     case 'h1':
-      insertAtCursor(editor, '# ');
+      surroundSelection(editor, '# ', '', true);
       break;
     case 'h2':
-      insertAtCursor(editor, '## ');
+      surroundSelection(editor, '## ', '', true);
       break;
     case 'h3':
-      insertAtCursor(editor, '### ');
+      surroundSelection(editor, '### ', '', true);
       break;
     case 'bold':
       surroundSelection(editor, '**', '**');
@@ -411,23 +478,24 @@ function handleToolbar(cmd, editor, imgInput) {
       surroundSelection(editor, '```\n', '\n```');
       break;
     case 'warning':
-      surroundSelection(editor, '<div class="warning-box">', '</div>');
+      // Insert warning box with icon and divider
+      surroundSelection(editor, '<div class="warning-box"><span class="warning-icon">&#9888;</span><span class="warning-divider"></span><span class="warning-content">', '</span></div>');
       break;
     case 'link':
       const url = prompt('Enter URL:');
       if (url) surroundSelection(editor, '[', `](${url})`);
       break;
     case 'ol':
-      insertAtCursor(editor, '1. ');
+      surroundSelection(editor, '1. ', '', true);
       break;
     case 'ul':
-      insertAtCursor(editor, '- ');
+      surroundSelection(editor, '- ', '', true);
       break;
     case 'image':
       imgInput.click();
       break;
     case 'quote':
-      insertAtCursor(editor, '> ');
+      surroundSelection(editor, '> ', '', true);
       break;
     case 'hr':
       insertAtCursor(editor, '\n---\n');
@@ -439,16 +507,27 @@ function insertAtCursor(editor, text) {
   document.execCommand('insertText', false, text);
 }
 
-function surroundSelection(editor, before, after) {
+function surroundSelection(editor, before, after, prefixOnly = false) {
   const sel = window.getSelection();
   if (!sel.rangeCount) return;
   const range = sel.getRangeAt(0);
   const selected = range.toString();
   if (selected) {
-    document.execCommand('insertText', false, before + selected + after);
+    if (prefixOnly) {
+      // For H1, H2, H3, bullets, numbered, quote: prefix each line
+      const lines = selected.split('\n');
+      const prefix = before;
+      const newText = lines.map(line => line ? prefix + line : '').join('\n');
+      document.execCommand('insertText', false, newText);
+    } else {
+      document.execCommand('insertText', false, before + selected + after);
+    }
   } else {
-    document.execCommand('insertText', false, before + after);
-    // Move cursor between before/after if possible
+    if (prefixOnly) {
+      document.execCommand('insertText', false, before);
+    } else {
+      document.execCommand('insertText', false, before + after);
+    }
   }
 }
 
@@ -469,9 +548,15 @@ function showDeleteModal(title) {
   modal.className = 'modal';
   modal.innerHTML = `
     <div class="modal-content">
-      <p>Are you sure you want to delete the article <b>${title}</b>? This action is NOT reversible, you WILL lose this data forever.</p>
-      <button id="confirm-delete">Delete</button>
-      <button id="cancel-delete">Cancel</button>
+      <div class="delete-modal-texts">
+        <div class="delete-modal-line1">Are you sure you want to delete the article below?</div>
+        <div class="delete-modal-title">${title}</div>
+        <div class="delete-modal-line3">This action is <b>NOT</b> reversible, you <b>WILL</b> lose this data forever.</div>
+      </div>
+      <div class="delete-modal-buttons">
+        <button id="cancel-delete" class="delete-cancel-btn" autofocus>No do NOT delete this article, I need it!</button>
+        <button id="confirm-delete" class="delete-confirm-btn">Yes, I do not want this article anymore</button>
+      </div>
     </div>
   `;
   area.appendChild(modal);
@@ -498,4 +583,39 @@ function showDeleteModal(title) {
 window.addEventListener('DOMContentLoaded', () => {
   renderTopBar();
   fetchArticles();
-}); 
+});
+
+// For clipboard paste, add:
+document.addEventListener('paste', async (e) => {
+  if (state.mode !== 'add' && state.mode !== 'edit') return;
+  if (state.creationStep !== 'editor') return;
+  const editor = document.querySelector('.editor-area');
+  if (!editor) return;
+  const items = (e.clipboardData || window.clipboardData).items;
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+    if (item.kind === 'file' && item.type.startsWith('image/')) {
+      e.preventDefault();
+      const file = item.getAsFile();
+      // Generate imageNNN.png name
+      const folder = title_to_folder(state.selected);
+      const folderPath = `/data/tektune/${folder}`;
+      // Count existing images in the article folder (not possible from frontend, so let backend handle naming if needed)
+      const formData = new FormData();
+      // Use a generic name, backend will avoid collisions
+      formData.append('file', new File([file], 'image.png', { type: file.type }));
+      const res = await fetch(`${API_BASE}/images/${state.selected}`, { method: 'POST', body: formData });
+      const data = await res.json();
+      if (data.success) {
+        insertAtCursor(editor, `![](${data.url})`);
+      } else {
+        alert('Image upload failed');
+      }
+      break;
+    }
+  }
+});
+
+function title_to_folder(title) {
+  return title.replace(/ /g, '_');
+} 
