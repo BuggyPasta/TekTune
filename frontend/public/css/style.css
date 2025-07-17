@@ -153,6 +153,19 @@ body {
   height: calc(100vh - var(--topbar-height));
 }
 
+/* Content area: editing vs read-only */
+.content.editing {
+  height: calc(100vh - var(--topbar-height));
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.content.readonly {
+  height: auto;
+  overflow-y: auto;
+  display: block;
+}
+
 h1, h2, h3 {
   color: var(--accent);
   margin-top: 1.2em;
@@ -193,6 +206,8 @@ code {
 .code-block-wrapper {
   position: relative;
 }
+
+/* Copy button next to code blocks: compact style */
 .copy-btn {
   display: flex;
   align-items: center;
@@ -200,7 +215,7 @@ code {
   color: #fff;
   border: none;
   border-radius: 8px;
-  padding: 0.25em 0.75em;
+  padding: 0.15em 0.6em;
   font-size: 0.95em;
   cursor: pointer;
   position: absolute;
@@ -209,6 +224,9 @@ code {
   z-index: 2;
   gap: 0.4em;
   opacity: 0.85;
+  height: 28px;
+  min-height: 0;
+  max-height: 32px;
   transition: background var(--transition), opacity var(--transition);
 }
 .copy-btn .icon {
@@ -555,9 +573,10 @@ hr {
   gap: 1.5em;
   margin-top: 0.5em;
 }
+/* Delete modal No button: black text */
 .delete-cancel-btn {
   background: #2ecc40 !important;
-  color: #fff !important;
+  color: #111 !important;
   font-weight: bold;
   border: none;
   border-radius: var(--border-radius);
@@ -573,7 +592,7 @@ hr {
 .delete-cancel-btn:focus,
 .delete-cancel-btn:hover {
   background: #2ecc40 !important;
-  color: #fff !important;
+  color: #111 !important;
   outline: none;
 }
 .delete-confirm-btn {

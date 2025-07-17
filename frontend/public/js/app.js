@@ -25,7 +25,8 @@ function renderTopBar() {
     // No buttons in topbar during title entry
     return;
   }
-  if (state.mode === 'add' || state.mode === 'edit') {
+  if (state.mode === 'edit') {
+    right.appendChild(actionButton('close', 'Close', onClose));
     right.appendChild(actionButton('save', 'Save', window.onSave));
   } else {
     right.appendChild(actionButton('add', 'Add Article', onAdd));
@@ -92,6 +93,12 @@ async function selectArticle(title) {
 
 async function renderContentArea(mode) {
   const area = $('content-area');
+  // Set class for scrolling behavior
+  if (mode === 'article' && state.mode === 'edit') {
+    area.className = 'content editing';
+  } else {
+    area.className = 'content readonly';
+  }
   area.innerHTML = '';
   if (mode === 'welcome') {
     area.innerHTML = `<div class="welcome-msg">Welcome to TekTune! Start by creating your first article.</div>`;
@@ -265,6 +272,7 @@ async function fetchCurrentArticleForEdit() {
 
 function renderEditor({ title, content }) {
   state.creationStep = 'editor';
+  lastSavedContent = content;
   console.log('renderEditor called', { title, content });
   const area = $('content-area');
   area.innerHTML = '';
@@ -410,6 +418,7 @@ function renderEditor({ title, content }) {
         });
         console.log('POST /api/articles response:', res);
         if (res.ok) {
+          lastSavedContent = md;
           state.mode = 'view';
           state.selected = newTitle;
           await fetchArticles();
@@ -433,6 +442,7 @@ function renderEditor({ title, content }) {
         });
         console.log('PUT /api/articles response:', res);
         if (res.ok) {
+          lastSavedContent = md;
           state.mode = 'view';
           state.selected = newTitle;
           await fetchArticles();
@@ -631,6 +641,54 @@ function showDeleteModal(title) {
   };
   document.getElementById('cancel-delete').onclick = () => {
     modal.remove();
+  };
+}
+
+function onClose() {
+  const editor = document.querySelector('.editor-area');
+  const currentContent = toMarkdown(editor);
+  if (currentContent !== lastSavedContent) {
+    // Show modal
+    showSaveChangesModal();
+  } else {
+    // No changes, just close
+    state.mode = 'view';
+    renderTopBar();
+    renderContentArea('article');
+    renderSidebar();
+  }
+}
+
+function showSaveChangesModal() {
+  const area = $('content-area');
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+  modal.innerHTML = `
+    <div class="modal-content">
+      <div class="delete-modal-texts">
+        <div class="delete-modal-line1">Save changes?</div>
+      </div>
+      <div class="delete-modal-buttons">
+        <button id="save-changes-yes" class="delete-confirm-btn">Yes please</button>
+        <button id="save-changes-no" class="delete-cancel-btn">No, thank you</button>
+      </div>
+    </div>
+  `;
+  area.appendChild(modal);
+  document.getElementById('save-changes-yes').onclick = async () => {
+    await window.onSave();
+    modal.remove();
+    state.mode = 'view';
+    renderTopBar();
+    renderContentArea('article');
+    renderSidebar();
+  };
+  document.getElementById('save-changes-no').onclick = () => {
+    modal.remove();
+    state.mode = 'view';
+    renderTopBar();
+    renderContentArea('article');
+    renderSidebar();
   };
 }
 
