@@ -93,10 +93,20 @@ async function selectArticle(title) {
 
 // 1. Fix scrolling: set body overflow based on mode
 function setBodyScroll() {
+  const html = document.documentElement;
+  const body = document.body;
+  const app = document.getElementById('app');
+  const mainLayout = document.querySelector('.main-layout');
   if (state.mode === 'edit') {
-    document.body.style.overflow = 'hidden';
+    html.classList.add('editing-mode');
+    body.classList.add('editing-mode');
+    if (app) app.classList.add('editing-mode');
+    if (mainLayout) mainLayout.classList.add('editing-mode');
   } else {
-    document.body.style.overflow = '';
+    html.classList.remove('editing-mode');
+    body.classList.remove('editing-mode');
+    if (app) app.classList.remove('editing-mode');
+    if (mainLayout) mainLayout.classList.remove('editing-mode');
   }
 }
 
@@ -551,10 +561,13 @@ function handleToolbar(cmd, editor, imgInput) {
     case 'link': {
       const sel = window.getSelection();
       if (!sel.rangeCount) return;
-      const url = prompt('Enter URL:');
-      if (url) {
-        document.execCommand('createLink', false, url);
+      const selectedText = sel.toString().trim();
+      let url = selectedText;
+      if (!isValidURL(selectedText)) {
+        url = prompt('Enter URL:');
+        if (!url) return;
       }
+      document.execCommand('createLink', false, url);
       break;
     }
     case 'ol':
@@ -759,4 +772,9 @@ document.addEventListener('paste', async (e) => {
 
 function title_to_folder(title) {
   return title.replace(/ /g, '_');
+}
+
+function isValidURL(str) {
+  // Simple URL validation: must start with http:// or https://
+  return /^https?:\/\//i.test(str.trim());
 } 

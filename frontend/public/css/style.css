@@ -685,3 +685,68 @@ hr {
   background: #2ecc40 !important;
   color: #111 !important;
 } 
+
+html.editing-mode, body.editing-mode, #app.editing-mode, .main-layout.editing-mode, .content.editing {
+  height: 100vh !important;
+  overflow: hidden !important;
+}
+
+.sidebar {
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.content.editing {
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.content.readonly {
+  height: auto;
+  overflow-y: auto;
+  display: block;
+}
+
+.editor-area {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  height: 100%;
+  max-height: 100%;
+}
+
+/* Warning box: flex, divider matches text height */
+.warning-box {
+  display: flex;
+  align-items: flex-start;
+  background: var(--warning-bg);
+  color: var(--warning-text);
+  border-radius: 8px;
+  border: 2px solid #b71c1c;
+  padding: 1em;
+  margin: 1.2em 0;
+  font-size: 1em;
+  font-family: inherit;
+  font-weight: bold;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  line-height: 1.4;
+}
+.warning-box .warning-icon {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  font-size: 1.5em;
+  margin-right: 0.7em;
+  height: 100%;
+}
+.warning-box .warning-divider {
+  display: inline-block;
+  border-left: 2px solid #fff;
+  margin: 0 0.7em 0 0;
+  height: 100%;
+  align-self: stretch;
+}
+.warning-box .warning-content {
+  flex: 1;
+  display: block;
+} 
