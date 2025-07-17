@@ -1,5 +1,6 @@
 import os
 import re
+import logging
 from flask import Flask, request, jsonify, send_from_directory, abort
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
@@ -8,8 +9,13 @@ ARTICLES_DIR = '/data/tektune/articles'
 IMAGES_DIR = '/data/tektune/images'
 ALLOWED_IMAGE_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger("tektune")
+
 app = Flask(__name__, static_folder='frontend/public', static_url_path='')
 CORS(app)
+
+logger.info(f"Flask static_folder is: {app.static_folder}")
 
 # Ensure storage directories exist
 os.makedirs(ARTICLES_DIR, exist_ok=True)
@@ -31,20 +37,41 @@ def allowed_image_file(filename):
     return '.' in filename and \
         filename.rsplit('.', 1)[1].lower() in ALLOWED_IMAGE_EXTENSIONS
 
+# Debug endpoint to list all files in the static folder
+@app.route('/debug-list')
+def debug_list():
+    files = []
+    for root, dirs, filenames in os.walk(app.static_folder):
+        for name in filenames:
+            files.append(os.path.relpath(os.path.join(root, name), app.static_folder))
+    logger.info(f"Files in static folder: {files}")
+    return {'static_folder': app.static_folder, 'files': files}
+
 # Serve index.html at root
 @app.route('/')
 def index():
-    return send_from_directory(app.static_folder, 'index.html')
+    index_path = os.path.join(app.static_folder, 'index.html')
+    logger.info(f"Serving /: Looking for {index_path}")
+    if os.path.isfile(index_path):
+        logger.info("index.html found, serving.")
+        return send_from_directory(app.static_folder, 'index.html')
+    else:
+        logger.error("index.html NOT FOUND!")
+        return "index.html not found", 404
 
 # Serve static files and fallback to index.html for SPA (except /api and /images)
 @app.route('/<path:path>')
 def static_proxy(path):
     file_path = os.path.join(app.static_folder, path)
+    logger.info(f"Request for /{path}, looking for {file_path}")
     if os.path.isfile(file_path):
+        logger.info(f"Found static file: {file_path}")
         return send_from_directory(app.static_folder, path)
     else:
         if not path.startswith('api') and not path.startswith('images'):
+            logger.info(f"Not found, falling back to index.html for SPA: {file_path}")
             return send_from_directory(app.static_folder, 'index.html')
+        logger.error(f"File not found and not SPA route: {file_path}")
         abort(404)
 
 @app.route('/api/articles', methods=['GET'])
