@@ -640,3 +640,22 @@ hr {
   display: block;
   box-sizing: border-box;
 } 
+
+/* Remove all button hover effects */
+.action-btn:hover,
+.copy-btn:hover,
+.delete-cancel-btn:hover,
+.delete-confirm-btn:hover,
+.title-save-btn:hover,
+.title-cancel-btn:hover {
+  background: unset !important;
+  color: unset !important;
+  opacity: unset !important;
+  outline: none !important;
+}
+
+/* Only keep link hover effect */
+.article-body a:hover {
+  background: var(--accent);
+  color: #fff !important;
+} 

@@ -91,7 +91,18 @@ async function selectArticle(title) {
   renderSidebar();
 }
 
+// 1. Fix scrolling: set body overflow based on mode
+function setBodyScroll() {
+  if (state.mode === 'edit') {
+    document.body.style.overflow = 'hidden';
+  } else {
+    document.body.style.overflow = '';
+  }
+}
+
+// Call setBodyScroll in renderContentArea and when switching modes
 async function renderContentArea(mode) {
+  setBodyScroll();
   const area = $('content-area');
   // Set class for scrolling behavior
   if (mode === 'article' && state.mode === 'edit') {
@@ -270,6 +281,9 @@ async function fetchCurrentArticleForEdit() {
   renderEditor(data);
 }
 
+// 3. & 4. Preserve formatting and line breaks in editor
+// Store and restore editor HTML directly for editing
+let lastSavedContent = '';
 function renderEditor({ title, content }) {
   state.creationStep = 'editor';
   lastSavedContent = content;
@@ -357,7 +371,8 @@ function renderEditor({ title, content }) {
   editor.className = 'editor-area';
   editor.contentEditable = true;
   editor.spellcheck = true;
-  editor.innerHTML = content ? marked.parse(content) : '';
+  // Use HTML content directly for editing
+  editor.innerHTML = content || '';
   area.appendChild(editor);
   console.log('Editor area appended');
 
@@ -397,10 +412,11 @@ function renderEditor({ title, content }) {
   // Save handler
   window.onSave = async function () {
     const newTitle = titleInput.value.trim();
-    const md = toMarkdown(editor);
+    // Save editor HTML as content
+    const htmlContent = editor.innerHTML;
     console.log('Save button clicked');
     console.log('Saving article with title:', newTitle);
-    console.log('Content:', md);
+    console.log('Content:', htmlContent);
     if (!newTitle) {
       alert('Title is required, can only contain letters, numbers, and spaces, and must be at most 100 characters.');
       return;
@@ -414,11 +430,11 @@ function renderEditor({ title, content }) {
         const res = await fetch(`${API_BASE}/articles`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title: newTitle, content: md })
+          body: JSON.stringify({ title: newTitle, content: htmlContent })
         });
         console.log('POST /api/articles response:', res);
         if (res.ok) {
-          lastSavedContent = md;
+          lastSavedContent = htmlContent;
           state.mode = 'view';
           state.selected = newTitle;
           await fetchArticles();
@@ -438,11 +454,11 @@ function renderEditor({ title, content }) {
         const res = await fetch(`${API_BASE}/articles/${oldTitle}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title: newTitle, content: md })
+          body: JSON.stringify({ title: newTitle, content: htmlContent })
         });
         console.log('PUT /api/articles response:', res);
         if (res.ok) {
-          lastSavedContent = md;
+          lastSavedContent = htmlContent;
           state.mode = 'view';
           state.selected = newTitle;
           await fetchArticles();
@@ -646,7 +662,7 @@ function showDeleteModal(title) {
 
 function onClose() {
   const editor = document.querySelector('.editor-area');
-  const currentContent = toMarkdown(editor);
+  const currentContent = editor.innerHTML;
   if (currentContent !== lastSavedContent) {
     // Show modal
     showSaveChangesModal();
@@ -659,6 +675,7 @@ function onClose() {
   }
 }
 
+// 2. Save changes modal: blue buttons, ensure they work
 function showSaveChangesModal() {
   const area = $('content-area');
   const modal = document.createElement('div');
@@ -669,8 +686,8 @@ function showSaveChangesModal() {
         <div class="delete-modal-line1">Save changes?</div>
       </div>
       <div class="delete-modal-buttons">
-        <button id="save-changes-yes" class="delete-confirm-btn">Yes please</button>
-        <button id="save-changes-no" class="delete-cancel-btn">No, thank you</button>
+        <button id="save-changes-yes" class="action-btn">Yes please</button>
+        <button id="save-changes-no" class="action-btn">No, thank you</button>
       </div>
     </div>
   `;
