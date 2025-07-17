@@ -549,39 +549,43 @@ hr {
   margin-top: 0.5em;
 }
 .delete-cancel-btn {
-  background: #2ecc40;
-  color: #fff;
+  background: #2ecc40 !important;
+  color: #fff !important;
   font-weight: bold;
   border: none;
   border-radius: var(--border-radius);
   padding: 0.6em 1.3em;
   font-size: 1em;
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-  transition: background var(--transition), outline var(--transition);
+  outline: none;
+  outline-offset: 0;
+  transition: none;
   order: 0;
+  cursor: pointer;
 }
 .delete-cancel-btn:focus,
 .delete-cancel-btn:hover {
-  background: #27ae60;
-  outline: 2.5px solid var(--accent);
+  background: #2ecc40 !important;
+  color: #fff !important;
+  outline: none;
 }
 .delete-confirm-btn {
-  background: var(--warning-bg);
-  color: var(--warning-text);
+  background: var(--warning-bg) !important;
+  color: var(--warning-text) !important;
   font-weight: bold;
   border: none;
   border-radius: var(--border-radius);
   padding: 0.6em 1.3em;
   font-size: 1em;
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  transition: background var(--transition);
+  transition: none;
   order: 1;
+  cursor: pointer;
 }
 .delete-confirm-btn:focus,
 .delete-confirm-btn:hover {
-  background: #b71c1c;
+  background: var(--warning-bg) !important;
+  color: var(--warning-text) !important;
 } 
 
 /* Responsive images in articles and editor */

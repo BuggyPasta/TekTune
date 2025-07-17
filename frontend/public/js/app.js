@@ -27,12 +27,13 @@ function renderTopBar() {
   }
   if (state.mode === 'add' || state.mode === 'edit') {
     right.appendChild(actionButton('save', 'Save', window.onSave));
-  } else {
-    right.appendChild(actionButton('add', 'Add Article', onAdd));
-    if (state.selected) {
+    // Only show Edit and Delete if an article is selected and in edit mode
+    if (state.selected && state.mode === 'edit') {
       right.appendChild(actionButton('edit', 'Edit', onEdit));
       right.appendChild(actionButton('delete', 'Delete', onDelete));
     }
+  } else {
+    right.appendChild(actionButton('add', 'Add Article', onAdd));
   }
 }
 
@@ -102,8 +103,7 @@ async function renderContentArea(mode) {
   }
   if (mode === 'article' && state.selected) {
     // Fetch and display article
-    const filename = state.selected.replace(/ /g, '_') + '.txt';
-    const res = await fetch(`${API_BASE}/articles/${filename}`);
+    const res = await fetch(`${API_BASE}/articles/${encodeURIComponent(state.selected)}`);
     if (!res.ok) {
       area.innerHTML = `<div class="error-msg">Failed to load article.</div>`;
       return;
@@ -254,8 +254,7 @@ function onEdit() {
 }
 
 async function fetchCurrentArticleForEdit() {
-  const filename = state.selected.replace(/ /g, '_') + '.txt';
-  const res = await fetch(`${API_BASE}/articles/${filename}`);
+  const res = await fetch(`${API_BASE}/articles/${encodeURIComponent(state.selected)}`);
   if (!res.ok) {
     renderContentArea('error');
     return;
@@ -585,25 +584,45 @@ function showDeleteModal(title) {
         <div class="delete-modal-line3">This action is <b>NOT</b> reversible, you <b>WILL</b> lose this data forever.</div>
       </div>
       <div class="delete-modal-buttons">
-        <button id="cancel-delete" class="delete-cancel-btn" autofocus>No do NOT delete this article, I need it!</button>
+        <button id="cancel-delete" class="delete-cancel-btn" autofocus>No, do NOT delete this article, I need it!</button>
         <button id="confirm-delete" class="delete-confirm-btn">Yes, I do not want this article anymore</button>
       </div>
     </div>
   `;
   area.appendChild(modal);
-  document.getElementById('confirm-delete').onclick = async () => {
-    const filename = title.replace(/ /g, '_') + '.txt';
-    const res = await fetch(`${API_BASE}/articles/${filename}`, { method: 'DELETE' });
-    if (res.ok) {
-      state.selected = null;
-      state.mode = 'view';
-      await fetchArticles();
-      renderTopBar();
-      renderSidebar();
-    } else {
-      alert('Failed to delete article');
-    }
-    modal.remove();
+  document.getElementById('confirm-delete').onclick = () => {
+    // Show second confirmation modal
+    const confirmModal = document.createElement('div');
+    confirmModal.className = 'modal';
+    confirmModal.innerHTML = `
+      <div class="modal-content">
+        <div class="delete-modal-texts">
+          <div class="delete-modal-line1">Are you sure?</div>
+        </div>
+        <div class="delete-modal-buttons">
+          <button id="final-cancel-delete" class="delete-cancel-btn" autofocus>No</button>
+          <button id="final-confirm-delete" class="delete-confirm-btn">Yes</button>
+        </div>
+      </div>
+    `;
+    area.appendChild(confirmModal);
+    document.getElementById('final-confirm-delete').onclick = async () => {
+      const res = await fetch(`${API_BASE}/articles/${encodeURIComponent(title)}`, { method: 'DELETE' });
+      if (res.ok) {
+        state.selected = null;
+        state.mode = 'view';
+        await fetchArticles();
+        renderTopBar();
+        renderSidebar();
+      } else {
+        alert('Failed to delete article');
+      }
+      confirmModal.remove();
+      modal.remove();
+    };
+    document.getElementById('final-cancel-delete').onclick = () => {
+      confirmModal.remove();
+    };
   };
   document.getElementById('cancel-delete').onclick = () => {
     modal.remove();
