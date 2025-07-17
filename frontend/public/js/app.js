@@ -149,6 +149,7 @@ function addCopyButtons(container) {
 }
 
 function onAdd() {
+  console.log('onAdd called');
   state.mode = 'add';
   state.selected = null;
   renderTopBar();
@@ -173,6 +174,7 @@ async function fetchCurrentArticleForEdit() {
 }
 
 function renderEditor({ title, content }) {
+  console.log('renderEditor called', { title, content });
   const area = $('content-area');
   area.innerHTML = '';
   // Title field
@@ -183,6 +185,7 @@ function renderEditor({ title, content }) {
   titleInput.placeholder = 'Article Title';
   titleInput.maxLength = 100;
   area.appendChild(titleInput);
+  console.log('Title input appended');
 
   // Toolbar
   const toolbar = document.createElement('div');
@@ -204,6 +207,7 @@ function renderEditor({ title, content }) {
     <button type="button" data-cmd="hr">―</button>
   `;
   area.appendChild(toolbar);
+  console.log('Toolbar appended');
 
   // Editor area
   const editor = document.createElement('div');
@@ -212,6 +216,7 @@ function renderEditor({ title, content }) {
   editor.spellcheck = true;
   editor.innerHTML = content ? marked.parse(content) : '';
   area.appendChild(editor);
+  console.log('Editor area appended');
 
   // Image upload input (hidden)
   const imgInput = document.createElement('input');
@@ -219,6 +224,7 @@ function renderEditor({ title, content }) {
   imgInput.accept = 'image/*';
   imgInput.style.display = 'none';
   area.appendChild(imgInput);
+  console.log('Image input appended');
 
   // Toolbar actions
   toolbar.addEventListener('click', (e) => {
