@@ -8,7 +8,7 @@ ARTICLES_DIR = '/data/tektune/articles'
 IMAGES_DIR = '/data/tektune/images'
 ALLOWED_IMAGE_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 
-app = Flask(__name__, static_folder='../frontend/public', static_url_path='')
+app = Flask(__name__, static_folder='frontend/public', static_url_path='')
 CORS(app)
 
 # Ensure storage directories exist
