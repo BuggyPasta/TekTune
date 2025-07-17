@@ -229,7 +229,7 @@ function renderTitleInput() {
     });
     if (res.ok) {
       state.selected = title;
-      state.mode = 'add';
+      state.mode = 'edit'; // Switch to edit mode so subsequent saves use PUT
       state.creationStep = 'editor';
       renderTopBar();
       renderEditor({ title, content: '' });
@@ -478,19 +478,48 @@ function handleToolbar(cmd, editor, imgInput) {
       surroundSelection(editor, '```\n', '\n```');
       break;
     case 'warning':
-      // Insert warning box with icon and divider
       surroundSelection(editor, '<div class="warning-box"><span class="warning-icon">&#9888;</span><span class="warning-divider"></span><span class="warning-content">', '</span></div>');
       break;
-    case 'link':
-      const url = prompt('Enter URL:');
-      if (url) surroundSelection(editor, '[', `](${url})`);
+    case 'link': {
+      const selText = window.getSelection().toString();
+      if (/^https?:\/\//.test(selText)) {
+        surroundSelection(editor, '[', `](${selText})`);
+      } else {
+        const url = prompt('Enter URL:');
+        if (url) surroundSelection(editor, '[', `](${url})`);
+      }
       break;
-    case 'ol':
-      surroundSelection(editor, '1. ', '', true);
+    }
+    case 'ol': {
+      // Prefix each selected line with 1. 
+      const sel = window.getSelection();
+      if (!sel.rangeCount) return;
+      const range = sel.getRangeAt(0);
+      const selected = range.toString();
+      if (selected) {
+        const lines = selected.split('\n');
+        const newText = lines.map(line => line ? '1. ' + line : '').join('\n');
+        document.execCommand('insertText', false, newText);
+      } else {
+        document.execCommand('insertText', false, '1. ');
+      }
       break;
-    case 'ul':
-      surroundSelection(editor, '- ', '', true);
+    }
+    case 'ul': {
+      // Prefix each selected line with - 
+      const sel = window.getSelection();
+      if (!sel.rangeCount) return;
+      const range = sel.getRangeAt(0);
+      const selected = range.toString();
+      if (selected) {
+        const lines = selected.split('\n');
+        const newText = lines.map(line => line ? '- ' + line : '').join('\n');
+        document.execCommand('insertText', false, newText);
+      } else {
+        document.execCommand('insertText', false, '- ');
+      }
       break;
+    }
     case 'image':
       imgInput.click();
       break;
