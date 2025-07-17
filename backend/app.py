@@ -12,7 +12,9 @@ ALLOWED_IMAGE_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("tektune")
 
-app = Flask(__name__, static_folder='frontend/public', static_url_path='')
+# Set static folder to absolute path /app/frontend/public
+STATIC_FOLDER = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'frontend', 'public')
+app = Flask(__name__, static_folder=STATIC_FOLDER, static_url_path='')
 CORS(app)
 
 logger.info(f"Flask static_folder is: {app.static_folder}")
