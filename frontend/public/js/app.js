@@ -27,13 +27,13 @@ function renderTopBar() {
   }
   if (state.mode === 'add' || state.mode === 'edit') {
     right.appendChild(actionButton('save', 'Save', window.onSave));
-    // Only show Edit and Delete if an article is selected and in edit mode
-    if (state.selected && state.mode === 'edit') {
+  } else {
+    right.appendChild(actionButton('add', 'Add Article', onAdd));
+    // Show Edit and Delete only if an article is selected and in read-only mode
+    if (state.selected && state.mode === 'view') {
       right.appendChild(actionButton('edit', 'Edit', onEdit));
       right.appendChild(actionButton('delete', 'Delete', onDelete));
     }
-  } else {
-    right.appendChild(actionButton('add', 'Add Article', onAdd));
   }
 }
 
@@ -452,6 +452,21 @@ function renderEditor({ title, content }) {
   renderTopBar();
 }
 
+// Improved toMarkdown: preserve line breaks
+function toMarkdown(editor) {
+  // Convert HTML to Markdown, preserving line breaks
+  let html = editor.innerHTML;
+  // Replace <div> and <br> with \n
+  html = html.replace(/<div><br><\/div>/g, '\n'); // empty divs
+  html = html.replace(/<div>/g, '\n');
+  html = html.replace(/<br>/g, '\n');
+  html = html.replace(/<\/div>/g, '');
+  // Remove any remaining HTML tags (simple)
+  html = html.replace(/<[^>]+>/g, '');
+  return html;
+}
+
+// Improved list logic: use insertHTML for <ul>/<ol>/<li>
 function handleToolbar(cmd, editor, imgInput) {
   document.execCommand('styleWithCSS', false, false);
   switch (cmd) {
@@ -490,34 +505,30 @@ function handleToolbar(cmd, editor, imgInput) {
       break;
     }
     case 'ol': {
-      // Robustly prefix each selected line with 1. and replace selection
       const sel = window.getSelection();
       if (!sel.rangeCount) return;
       const range = sel.getRangeAt(0);
       const selected = range.toString();
       if (selected) {
-        const lines = selected.split(/\r?\n/);
-        const newText = lines.map(line => line ? '1. ' + line : '').join('\n');
-        range.deleteContents();
-        range.insertNode(document.createTextNode(newText));
+        const lines = selected.split(/\r?\n/).filter(line => line.trim() !== '');
+        const html = '<ol>' + lines.map(line => `<li>${line}</li>`).join('') + '</ol>';
+        document.execCommand('insertHTML', false, html);
       } else {
-        document.execCommand('insertText', false, '1. ');
+        document.execCommand('insertHTML', false, '<ol><li></li></ol>');
       }
       break;
     }
     case 'ul': {
-      // Robustly prefix each selected line with - and replace selection
       const sel = window.getSelection();
       if (!sel.rangeCount) return;
       const range = sel.getRangeAt(0);
       const selected = range.toString();
       if (selected) {
-        const lines = selected.split(/\r?\n/);
-        const newText = lines.map(line => line ? '- ' + line : '').join('\n');
-        range.deleteContents();
-        range.insertNode(document.createTextNode(newText));
+        const lines = selected.split(/\r?\n/).filter(line => line.trim() !== '');
+        const html = '<ul>' + lines.map(line => `<li>${line}</li>`).join('') + '</ul>';
+        document.execCommand('insertHTML', false, html);
       } else {
-        document.execCommand('insertText', false, '- ');
+        document.execCommand('insertHTML', false, '<ul><li></li></ul>');
       }
       break;
     }
@@ -559,12 +570,6 @@ function surroundSelection(editor, before, after, prefixOnly = false) {
       document.execCommand('insertText', false, before + after);
     }
   }
-}
-
-function toMarkdown(editor) {
-  // Convert HTML back to Markdown (simple approach)
-  // For now, just use innerText (improve later if needed)
-  return editor.innerText;
 }
 
 function onDelete() {
