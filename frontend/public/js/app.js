@@ -354,6 +354,8 @@ function renderEditor({ title, content }) {
       }
     }
   };
+  // Ensure Save button uses the latest handler
+  renderTopBar();
 }
 
 function handleToolbar(cmd, editor, imgInput) {
