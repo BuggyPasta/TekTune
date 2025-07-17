@@ -641,21 +641,47 @@ hr {
   box-sizing: border-box;
 } 
 
-/* Remove all button hover effects */
+/* All buttons: always blue background, white text, no hover/focus/active color change */
+.action-btn,
+.action-btn:focus,
+.action-btn:active,
 .action-btn:hover,
+.copy-btn,
+.copy-btn:focus,
+.copy-btn:active,
 .copy-btn:hover,
+.delete-cancel-btn,
+.delete-cancel-btn:focus,
+.delete-cancel-btn:active,
 .delete-cancel-btn:hover,
+.delete-confirm-btn,
+.delete-confirm-btn:focus,
+.delete-confirm-btn:active,
 .delete-confirm-btn:hover,
+.title-save-btn,
+.title-save-btn:focus,
+.title-save-btn:active,
 .title-save-btn:hover,
+.title-cancel-btn,
+.title-cancel-btn:focus,
+.title-cancel-btn:active,
 .title-cancel-btn:hover {
-  background: unset !important;
-  color: unset !important;
-  opacity: unset !important;
+  background: var(--accent) !important;
+  color: #fff !important;
+  opacity: 1 !important;
   outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
 }
 
-/* Only keep link hover effect */
-.article-body a:hover {
-  background: var(--accent);
-  color: #fff !important;
+/* Exception: .delete-cancel-btn in delete modal stays green with black text */
+.delete-cancel-btn.delete-modal {
+  background: #2ecc40 !important;
+  color: #111 !important;
+}
+.delete-cancel-btn.delete-modal:focus,
+.delete-cancel-btn.delete-modal:active,
+.delete-cancel-btn.delete-modal:hover {
+  background: #2ecc40 !important;
+  color: #111 !important;
 } 

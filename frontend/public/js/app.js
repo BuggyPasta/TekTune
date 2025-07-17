@@ -127,13 +127,18 @@ async function renderContentArea(mode) {
       return;
     }
     const data = await res.json();
-    // Render Markdown to HTML
-    const html = marked.parse(data.content);
-    area.innerHTML = `<div class='article-title'>${data.title}</div><div class="article-body">${html}</div>`;
+    // Render HTML directly
+    area.innerHTML = `<div class='article-title'>${data.title}</div><div class="article-body">${data.content}</div>`;
     // Add copy buttons to code blocks
     addCopyButtons(area.querySelector('.article-body'));
     // Highlight code blocks
     Prism.highlightAllUnder(area);
+    // Set all links to open in new tab
+    const links = area.querySelectorAll('.article-body a');
+    links.forEach(link => {
+      link.setAttribute('target', '_blank');
+      link.setAttribute('rel', 'noopener noreferrer');
+    });
     return;
   }
 }
@@ -496,76 +501,77 @@ function toMarkdown(editor) {
 function handleToolbar(cmd, editor, imgInput) {
   document.execCommand('styleWithCSS', false, false);
   switch (cmd) {
-    case 'h1':
-      surroundSelection(editor, '# ', '', true);
+    case 'h1': {
+      document.execCommand('formatBlock', false, 'H1');
       break;
-    case 'h2':
-      surroundSelection(editor, '## ', '', true);
+    }
+    case 'h2': {
+      document.execCommand('formatBlock', false, 'H2');
       break;
-    case 'h3':
-      surroundSelection(editor, '### ', '', true);
+    }
+    case 'h3': {
+      document.execCommand('formatBlock', false, 'H3');
       break;
+    }
     case 'bold':
-      surroundSelection(editor, '**', '**');
+      document.execCommand('bold');
       break;
     case 'italic':
-      surroundSelection(editor, '*', '*');
+      document.execCommand('italic');
       break;
     case 'underline':
-      surroundSelection(editor, '<u>', '</u>');
+      document.execCommand('underline');
       break;
-    case 'code':
-      surroundSelection(editor, '```\n', '\n```');
+    case 'code': {
+      document.execCommand('formatBlock', false, 'PRE');
       break;
-    case 'warning':
-      surroundSelection(editor, '<div class="warning-box"><span class="warning-icon">&#9888;</span><span class="warning-divider"></span><span class="warning-content">', '</span></div>');
+    }
+    case 'warning': {
+      // Wrap selection in a warning box div
+      const sel = window.getSelection();
+      if (!sel.rangeCount) return;
+      const range = sel.getRangeAt(0);
+      const selected = range.extractContents();
+      const box = document.createElement('div');
+      box.className = 'warning-box';
+      const icon = document.createElement('span');
+      icon.className = 'warning-icon';
+      icon.innerHTML = '&#9888;';
+      const divider = document.createElement('span');
+      divider.className = 'warning-divider';
+      const content = document.createElement('span');
+      content.className = 'warning-content';
+      content.appendChild(selected);
+      box.appendChild(icon);
+      box.appendChild(divider);
+      box.appendChild(content);
+      range.insertNode(box);
       break;
+    }
     case 'link': {
-      const selText = window.getSelection().toString();
-      if (/^https?:\/\//.test(selText)) {
-        surroundSelection(editor, '[', `](${selText})`);
-      } else {
-        const url = prompt('Enter URL:');
-        if (url) surroundSelection(editor, '[', `](${url})`);
-      }
-      break;
-    }
-    case 'ol': {
       const sel = window.getSelection();
       if (!sel.rangeCount) return;
-      const range = sel.getRangeAt(0);
-      const selected = range.toString();
-      if (selected) {
-        const lines = selected.split(/\r?\n/).filter(line => line.trim() !== '');
-        const html = '<ol>' + lines.map(line => `<li>${line}</li>`).join('') + '</ol>';
-        document.execCommand('insertHTML', false, html);
-      } else {
-        document.execCommand('insertHTML', false, '<ol><li></li></ol>');
+      const url = prompt('Enter URL:');
+      if (url) {
+        document.execCommand('createLink', false, url);
       }
       break;
     }
-    case 'ul': {
-      const sel = window.getSelection();
-      if (!sel.rangeCount) return;
-      const range = sel.getRangeAt(0);
-      const selected = range.toString();
-      if (selected) {
-        const lines = selected.split(/\r?\n/).filter(line => line.trim() !== '');
-        const html = '<ul>' + lines.map(line => `<li>${line}</li>`).join('') + '</ul>';
-        document.execCommand('insertHTML', false, html);
-      } else {
-        document.execCommand('insertHTML', false, '<ul><li></li></ul>');
-      }
+    case 'ol':
+      document.execCommand('insertOrderedList');
       break;
-    }
+    case 'ul':
+      document.execCommand('insertUnorderedList');
+      break;
     case 'image':
       imgInput.click();
       break;
-    case 'quote':
-      surroundSelection(editor, '> ', '', true);
+    case 'quote': {
+      document.execCommand('formatBlock', false, 'BLOCKQUOTE');
       break;
+    }
     case 'hr':
-      insertAtCursor(editor, '\n---\n');
+      document.execCommand('insertHorizontalRule');
       break;
   }
 }
