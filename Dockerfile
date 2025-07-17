@@ -5,7 +5,6 @@ WORKDIR /app
 
 COPY backend/ ./backend/
 COPY frontend/ ./frontend/
-COPY TekTune\ Brief.txt ./
 COPY README.md ./
 
 RUN pip install --no-cache-dir -r backend/requirements.txt
