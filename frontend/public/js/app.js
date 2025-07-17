@@ -426,8 +426,8 @@ function renderEditor({ title, content }) {
       }
     } else if (state.mode === 'edit') {
       try {
-        const oldFilename = state.selected.replace(/ /g, '_') + '.txt';
-        const res = await fetch(`${API_BASE}/articles/${oldFilename}`, {
+        const oldTitle = state.selected;
+        const res = await fetch(`${API_BASE}/articles/${oldTitle}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ title: newTitle, content: md })
@@ -445,7 +445,7 @@ function renderEditor({ title, content }) {
         }
       } catch (e) {
         console.error('Network or JS error during update:', e);
-        alert('Network or JS error during update');
+        alert('Network or JS error during update: ' + (e && e.message ? e.message : e));
       }
     }
   };
@@ -491,30 +491,32 @@ function handleToolbar(cmd, editor, imgInput) {
       break;
     }
     case 'ol': {
-      // Prefix each selected line with 1. 
+      // Robustly prefix each selected line with 1. and replace selection
       const sel = window.getSelection();
       if (!sel.rangeCount) return;
       const range = sel.getRangeAt(0);
       const selected = range.toString();
       if (selected) {
-        const lines = selected.split('\n');
+        const lines = selected.split(/\r?\n/);
         const newText = lines.map(line => line ? '1. ' + line : '').join('\n');
-        document.execCommand('insertText', false, newText);
+        range.deleteContents();
+        range.insertNode(document.createTextNode(newText));
       } else {
         document.execCommand('insertText', false, '1. ');
       }
       break;
     }
     case 'ul': {
-      // Prefix each selected line with - 
+      // Robustly prefix each selected line with - and replace selection
       const sel = window.getSelection();
       if (!sel.rangeCount) return;
       const range = sel.getRangeAt(0);
       const selected = range.toString();
       if (selected) {
-        const lines = selected.split('\n');
+        const lines = selected.split(/\r?\n/);
         const newText = lines.map(line => line ? '- ' + line : '').join('\n');
-        document.execCommand('insertText', false, newText);
+        range.deleteContents();
+        range.insertNode(document.createTextNode(newText));
       } else {
         document.execCommand('insertText', false, '- ');
       }
@@ -626,13 +628,18 @@ document.addEventListener('paste', async (e) => {
     if (item.kind === 'file' && item.type.startsWith('image/')) {
       e.preventDefault();
       const file = item.getAsFile();
-      // Generate imageNNN.png name
-      const folder = title_to_folder(state.selected);
-      const folderPath = `/data/tektune/${folder}`;
-      // Count existing images in the article folder (not possible from frontend, so let backend handle naming if needed)
+      // Count existing pasted images in the editor content
+      const content = editor.innerHTML;
+      const matches = content.match(/image_(\d{3})\.png/g) || [];
+      let maxNum = 0;
+      matches.forEach(name => {
+        const num = parseInt(name.match(/(\d{3})/)[1], 10);
+        if (num > maxNum) maxNum = num;
+      });
+      const nextNum = (maxNum + 1).toString().padStart(3, '0');
+      const filename = `image_${nextNum}.png`;
       const formData = new FormData();
-      // Use a generic name, backend will avoid collisions
-      formData.append('file', new File([file], 'image.png', { type: file.type }));
+      formData.append('file', new File([file], filename, { type: file.type }));
       const res = await fetch(`${API_BASE}/images/${state.selected}`, { method: 'POST', body: formData });
       const data = await res.json();
       if (data.success) {
