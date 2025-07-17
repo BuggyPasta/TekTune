@@ -101,13 +101,14 @@ body {
 }
 .sidebar {
   width: var(--sidebar-width);
+  min-width: var(--sidebar-width);
+  max-width: var(--sidebar-width);
   background: var(--bg-main);
   border-right: 1px solid var(--line-highlight-alt);
   padding: 1rem 0.5rem;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  min-width: 180px;
 }
 .article-btn {
   width: 100%;
@@ -118,7 +119,10 @@ body {
   padding: 0.75em 0.5em;
   text-align: left;
   font-size: 1rem;
-  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-all;
   cursor: pointer;
   transition: background var(--transition);
 }

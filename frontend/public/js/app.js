@@ -135,13 +135,37 @@ function addCopyButtons(container) {
     span.textContent = 'Copy';
     copyBtn.appendChild(span);
     copyBtn.onclick = () => {
-      navigator.clipboard.writeText(code.textContent);
-      copyBtn.classList.add('copied');
-      span.textContent = 'Copied!';
-      setTimeout(() => {
-        copyBtn.classList.remove('copied');
-        span.textContent = 'Copy';
-      }, 1200);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(code.textContent).then(() => {
+          copyBtn.classList.add('copied');
+          span.textContent = 'Copied!';
+          setTimeout(() => {
+            copyBtn.classList.remove('copied');
+            span.textContent = 'Copy';
+          }, 1200);
+        }).catch(() => {
+          alert('Copy failed.');
+        });
+      } else {
+        // Fallback for older browsers
+        try {
+          const range = document.createRange();
+          range.selectNodeContents(code);
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(range);
+          document.execCommand('copy');
+          sel.removeAllRanges();
+          copyBtn.classList.add('copied');
+          span.textContent = 'Copied!';
+          setTimeout(() => {
+            copyBtn.classList.remove('copied');
+            span.textContent = 'Copy';
+          }, 1200);
+        } catch (e) {
+          alert('Copy not supported in this browser.');
+        }
+      }
     };
     wrapper.appendChild(copyBtn);
     wrapper.style.position = 'relative';
@@ -303,8 +327,12 @@ function renderEditor({ title, content }) {
     console.log('Save button clicked');
     console.log('Saving article with title:', newTitle);
     console.log('Content:', md);
+    if (!newTitle) {
+      alert('Title is required and can only contain letters, numbers, and spaces.');
+      return;
+    }
     if (!/^[A-Za-z0-9 ]+$/.test(newTitle)) {
-      alert('Title can only contain letters, numbers, and spaces.');
+      alert('Title is required and can only contain letters, numbers, and spaces.');
       return;
     }
     if (state.mode === 'add') {
