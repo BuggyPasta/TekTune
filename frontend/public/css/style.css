@@ -697,8 +697,8 @@ html.editing-mode, body.editing-mode, #app.editing-mode, .main-layout.editing-mo
 }
 
 .content.editing {
-  height: 100vh;
-  overflow: hidden;
+  height: 100vh !important;
+  overflow: hidden !important;
   display: flex;
   flex-direction: column;
 }
@@ -710,9 +710,32 @@ html.editing-mode, body.editing-mode, #app.editing-mode, .main-layout.editing-mo
 
 .editor-area {
   flex: 1 1 auto;
-  overflow-y: auto;
+  overflow-y: auto !important;
   height: 100%;
   max-height: 100%;
+}
+
+/* Ensure copy button is always visible in read-only mode */
+.copy-btn {
+  display: flex !important;
+  align-items: center;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.15em 0.6em;
+  font-size: 0.95em;
+  cursor: pointer;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  gap: 0.4em;
+  opacity: 0.85;
+  height: 28px;
+  min-height: 0;
+  max-height: 32px;
+  transition: background var(--transition), opacity var(--transition);
 }
 
 /* Warning box: flex, divider matches text height */

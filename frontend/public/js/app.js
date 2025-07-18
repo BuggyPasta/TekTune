@@ -139,10 +139,10 @@ async function renderContentArea(mode) {
     const data = await res.json();
     // Render HTML directly
     area.innerHTML = `<div class='article-title'>${data.title}</div><div class="article-body">${data.content}</div>`;
-    // Add copy buttons to code blocks
-    addCopyButtons(area.querySelector('.article-body'));
     // Highlight code blocks
     Prism.highlightAllUnder(area);
+    // Add copy buttons to code blocks (must be after Prism)
+    addCopyButtons(area.querySelector('.article-body'));
     // Set all links to open in new tab
     const links = area.querySelectorAll('.article-body a');
     links.forEach(link => {
@@ -322,62 +322,61 @@ function renderEditor({ title, content }) {
     <div class="toolbar-grid">
       <button type="button" data-cmd="h1" aria-label="Heading 1">
         <span class="toolbar-icon">H1</span>
-        <span class="toolbar-label">heading 1</span>
+        <span class="toolbar-label">Heading 1</span>
       </button>
       <button type="button" data-cmd="h2" aria-label="Heading 2">
         <span class="toolbar-icon">H2</span>
-        <span class="toolbar-label">heading 2</span>
+        <span class="toolbar-label">Heading 2</span>
       </button>
       <button type="button" data-cmd="h3" aria-label="Heading 3">
         <span class="toolbar-icon">H3</span>
-        <span class="toolbar-label">heading 3</span>
+        <span class="toolbar-label">Heading 3</span>
       </button>
       <button type="button" data-cmd="bold" aria-label="Bold">
         <span class="toolbar-icon"><b>B</b></span>
-        <span class="toolbar-label">bold</span>
+        <span class="toolbar-label">Bold</span>
       </button>
       <button type="button" data-cmd="italic" aria-label="Italic">
         <span class="toolbar-icon"><i>I</i></span>
-        <span class="toolbar-label">italic</span>
+        <span class="toolbar-label">Italic</span>
       </button>
       <button type="button" data-cmd="underline" aria-label="Underline">
         <span class="toolbar-icon"><u>U</u></span>
-        <span class="toolbar-label">underline</span>
+        <span class="toolbar-label">Underline</span>
       </button>
       <button type="button" data-cmd="code" aria-label="Code block">
         <span class="toolbar-icon">&lt;/&gt;</span>
-        <span class="toolbar-label">code</span>
+        <span class="toolbar-label">Code</span>
       </button>
       <button type="button" data-cmd="warning" aria-label="Warning box">
         <span class="toolbar-icon">&#9888;</span>
-        <span class="toolbar-label">warning</span>
+        <span class="toolbar-label">Warning</span>
       </button>
       <button type="button" data-cmd="link" aria-label="Link">
         <span class="toolbar-icon">🔗</span>
-        <span class="toolbar-label">link</span>
+        <span class="toolbar-label">Link</span>
       </button>
       <button type="button" data-cmd="ol" aria-label="Numbered list">
         <span class="toolbar-icon">1.</span>
-        <span class="toolbar-label">numbered</span>
+        <span class="toolbar-label">Numbered</span>
       </button>
       <button type="button" data-cmd="ul" aria-label="Bullet list">
         <span class="toolbar-icon">•</span>
-        <span class="toolbar-label">bullets</span>
+        <span class="toolbar-label">Bullets</span>
       </button>
       <button type="button" data-cmd="image" aria-label="Image">
         <span class="toolbar-icon">🖼️</span>
-        <span class="toolbar-label">image</span>
+        <span class="toolbar-label">Image</span>
       </button>
       <button type="button" data-cmd="quote" aria-label="Quote">
         <span class="toolbar-icon">❝</span>
-        <span class="toolbar-label">quote</span>
+        <span class="toolbar-label">Quote</span>
       </button>
       <button type="button" data-cmd="hr" aria-label="Horizontal rule">
         <span class="toolbar-icon">―</span>
-        <span class="toolbar-label">divider</span>
+        <span class="toolbar-label">Divider</span>
       </button>
-    </div>
-  `;
+    </div>`;
   area.appendChild(toolbar);
   console.log('Toolbar appended');
 
@@ -450,10 +449,8 @@ function renderEditor({ title, content }) {
         console.log('POST /api/articles response:', res);
         if (res.ok) {
           lastSavedContent = htmlContent;
-          state.mode = 'view';
           state.selected = newTitle;
           await fetchArticles();
-          selectArticle(newTitle);
         } else {
           const err = await res.json();
           console.error('Error creating article:', err);
@@ -463,7 +460,7 @@ function renderEditor({ title, content }) {
         console.error('Network or JS error during save:', e);
         alert('Network or JS error during save');
       }
-    } else if (state.mode === 'edit') {
+    } else {
       try {
         const oldTitle = state.selected;
         const res = await fetch(`${API_BASE}/articles/${oldTitle}`, {
@@ -474,10 +471,8 @@ function renderEditor({ title, content }) {
         console.log('PUT /api/articles response:', res);
         if (res.ok) {
           lastSavedContent = htmlContent;
-          state.mode = 'view';
           state.selected = newTitle;
           await fetchArticles();
-          selectArticle(newTitle);
         } else {
           const err = await res.json();
           console.error('Error updating article:', err);
