@@ -549,13 +549,14 @@ function handleToolbar(cmd, editor, imgInput) {
       const icon = document.createElement('span');
       icon.className = 'warning-icon';
       icon.innerHTML = '&#9888;';
-      const divider = document.createElement('span');
-      divider.className = 'warning-divider';
       const content = document.createElement('span');
       content.className = 'warning-content';
+      // Divider as first child of warning-content
+      const divider = document.createElement('span');
+      divider.className = 'warning-divider';
+      content.appendChild(divider);
       content.appendChild(selected);
       box.appendChild(icon);
-      box.appendChild(divider);
       box.appendChild(content);
       range.insertNode(box);
       break;

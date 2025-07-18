@@ -549,14 +549,14 @@ hr {
   flex: none;
   display: flex;
   flex-direction: column;
-  background: var(--bg-edit);
+  background: transparent !important;
   z-index: 10;
 }
 .editor-frame-d {
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
   min-height: 0;
 }
 .editor-frame-d .editor-area {
@@ -718,10 +718,10 @@ html.editing-mode, body.editing-mode, #app.editing-mode, .main-layout.editing-mo
 }
 
 .content.editing {
-  height: 100vh !important;
-  overflow: hidden !important;
   display: flex;
   flex-direction: column;
+  height: 100vh !important;
+  overflow: hidden !important;
 }
 .content.readonly {
   height: auto;
@@ -777,6 +777,7 @@ html.editing-mode, body.editing-mode, #app.editing-mode, .main-layout.editing-mo
   margin: 0 0.7em 0 0;
   height: 100%;
   align-self: stretch;
+  position: static;
 }
 .warning-box .warning-content {
   flex: 1;
