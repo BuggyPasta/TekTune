@@ -891,3 +891,27 @@ function isValidURL(str) {
   // Simple URL validation: must start with http:// or https://
   return /^https?:\/\//i.test(str.trim());
 } 
+
+function renderTopBar() {
+  const left = document.getElementById('toolbar-left');
+  const right = document.getElementById('toolbar-right');
+  if (left) left.innerHTML = '';
+  if (right) right.innerHTML = '';
+  if (state.mode === 'edit' || state.mode === 'add') {
+    // Toolbar (left)
+    const toolbar = renderToolbar();
+    if (left) left.appendChild(toolbar);
+    // Save/Close (right)
+    if (right) {
+      right.appendChild(actionButton('close', 'Close', onClose));
+      right.appendChild(actionButton('save', 'Save', onSave));
+    }
+  } else {
+    // Read-only: Add always visible
+    if (right) right.appendChild(actionButton('add', 'Add Article', onAdd));
+    if (state.selected && right) {
+      right.appendChild(actionButton('edit', 'Edit', onEdit));
+      right.appendChild(actionButton('delete', 'Delete', onDelete));
+    }
+  }
+} 
