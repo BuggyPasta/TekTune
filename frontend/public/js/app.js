@@ -305,6 +305,14 @@ function renderEditor({ title, content }) {
   console.log('renderEditor called', { title, content });
   const area = $('content-area');
   area.innerHTML = '';
+
+  // --- Frame C: Title + Toolbar ---
+  const frameC = document.createElement('div');
+  frameC.className = 'editor-frame-c';
+  frameC.style.display = 'flex';
+  frameC.style.flexDirection = 'column';
+  frameC.style.flex = 'none';
+
   // Title field
   const titleInput = document.createElement('input');
   titleInput.type = 'text';
@@ -312,14 +320,14 @@ function renderEditor({ title, content }) {
   titleInput.value = title;
   titleInput.placeholder = 'Article Title';
   titleInput.maxLength = 100;
-  area.appendChild(titleInput);
+  frameC.appendChild(titleInput);
   console.log('Title input appended');
 
   // Toolbar
   const toolbar = document.createElement('div');
   toolbar.className = 'editor-toolbar';
-  toolbar.innerHTML = `
-    <div class="toolbar-grid">
+  toolbar.innerHTML =
+    `<div class="toolbar-grid">
       <button type="button" data-cmd="h1" aria-label="Heading 1">
         <span class="toolbar-icon">H1</span>
         <span class="toolbar-label">Heading 1</span>
@@ -377,17 +385,28 @@ function renderEditor({ title, content }) {
         <span class="toolbar-label">Divider</span>
       </button>
     </div>`;
-  area.appendChild(toolbar);
+  frameC.appendChild(toolbar);
+  area.appendChild(frameC);
   console.log('Toolbar appended');
+
+  // --- Frame D: Editor ---
+  const frameD = document.createElement('div');
+  frameD.className = 'editor-frame-d';
+  frameD.style.flex = '1 1 auto';
+  frameD.style.display = 'flex';
+  frameD.style.flexDirection = 'column';
+  frameD.style.overflow = 'hidden';
 
   // Editor area
   const editor = document.createElement('div');
   editor.className = 'editor-area';
   editor.contentEditable = true;
   editor.spellcheck = true;
-  // Use HTML content directly for editing
   editor.innerHTML = content || '';
-  area.appendChild(editor);
+  editor.style.flex = '1 1 auto';
+  editor.style.overflowY = 'auto';
+  frameD.appendChild(editor);
+  area.appendChild(frameD);
   console.log('Editor area appended');
 
   // Image upload input (hidden)
@@ -406,8 +425,6 @@ function renderEditor({ title, content }) {
     }
   });
 
-  // Replace image upload logic:
-  // imgInput.addEventListener('change', ...)
   imgInput.addEventListener('change', async (e) => {
     const file = imgInput.files[0];
     if (!file) return;
@@ -423,14 +440,9 @@ function renderEditor({ title, content }) {
     imgInput.value = '';
   });
 
-  // Save handler
   window.onSave = async function () {
     const newTitle = titleInput.value.trim();
-    // Save editor HTML as content
     const htmlContent = editor.innerHTML;
-    console.log('Save button clicked');
-    console.log('Saving article with title:', newTitle);
-    console.log('Content:', htmlContent);
     if (!newTitle) {
       alert('Title is required, can only contain letters, numbers, and spaces, and must be at most 100 characters.');
       return;
@@ -446,18 +458,15 @@ function renderEditor({ title, content }) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ title: newTitle, content: htmlContent })
         });
-        console.log('POST /api/articles response:', res);
         if (res.ok) {
           lastSavedContent = htmlContent;
           state.selected = newTitle;
           await fetchArticles();
         } else {
           const err = await res.json();
-          console.error('Error creating article:', err);
           alert(err.error || 'Failed to create article');
         }
       } catch (e) {
-        console.error('Network or JS error during save:', e);
         alert('Network or JS error during save');
       }
     } else {
@@ -468,23 +477,19 @@ function renderEditor({ title, content }) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ title: newTitle, content: htmlContent })
         });
-        console.log('PUT /api/articles response:', res);
         if (res.ok) {
           lastSavedContent = htmlContent;
           state.selected = newTitle;
           await fetchArticles();
         } else {
           const err = await res.json();
-          console.error('Error updating article:', err);
           alert(err.error || 'Failed to update article');
         }
       } catch (e) {
-        console.error('Network or JS error during update:', e);
         alert('Network or JS error during update: ' + (e && e.message ? e.message : e));
       }
     }
   };
-  // Ensure Save button uses the latest handler
   renderTopBar();
 }
 
