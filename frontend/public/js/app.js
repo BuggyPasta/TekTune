@@ -261,7 +261,23 @@ function onAdd() {
 }
 
 function renderAddArticleUI() {
-  // Completely re-render AREA B2
+  // --- AREA B1: Toolbar + Save/Close ---
+  const left = document.getElementById('toolbar-left');
+  const right = document.getElementById('toolbar-right');
+  if (left) left.innerHTML = '';
+  if (right) right.innerHTML = '';
+  
+  // Toolbar (left)
+  const toolbar = renderToolbar();
+  if (left) left.appendChild(toolbar);
+  
+  // Save/Close (right)
+  if (right) {
+    right.appendChild(actionButton('close', 'Close', onClose));
+    right.appendChild(actionButton('save', 'Save', onSave));
+  }
+
+  // --- AREA B2: Title input + Editor ---
   const areaB2 = document.getElementById('article-content');
   areaB2.innerHTML = '';
 
@@ -318,7 +334,6 @@ function renderAddArticleUI() {
   });
 
   // Handle toolbar clicks
-  const toolbar = document.querySelector('.editor-toolbar');
   if (toolbar) {
     toolbar.addEventListener('click', (e) => {
       if (e.target.closest('button')) {
@@ -762,7 +777,23 @@ function renderAddArticleEditor() {
 
 // --- Robust Toolbar Handler for Edit Mode ---
 function renderEditor({ title, content }) {
-  // Completely re-render AREA B2
+  // --- AREA B1: Toolbar + Save/Close ---
+  const left = document.getElementById('toolbar-left');
+  const right = document.getElementById('toolbar-right');
+  if (left) left.innerHTML = '';
+  if (right) right.innerHTML = '';
+  
+  // Toolbar (left)
+  const toolbar = renderToolbar();
+  if (left) left.appendChild(toolbar);
+  
+  // Save/Close (right)
+  if (right) {
+    right.appendChild(actionButton('close', 'Close', onClose));
+    right.appendChild(actionButton('save', 'Save', onSave));
+  }
+
+  // --- AREA B2: Title input + Editor ---
   const areaB2 = document.getElementById('article-content');
   areaB2.innerHTML = '';
 
@@ -777,7 +808,7 @@ function renderEditor({ title, content }) {
   // Editor area
   const editor = document.createElement('div');
   editor.className = 'editor-area';
-  editor.contentEditable = true;
+  editor.contentEditable = 'true';
   editor.innerHTML = content || '<p>Start writing your article...</p>';
   areaB2.appendChild(editor);
 
@@ -819,7 +850,6 @@ function renderEditor({ title, content }) {
   });
 
   // Handle toolbar clicks
-  const toolbar = document.querySelector('.editor-toolbar');
   if (toolbar) {
     toolbar.addEventListener('click', (e) => {
       if (e.target.closest('button')) {
