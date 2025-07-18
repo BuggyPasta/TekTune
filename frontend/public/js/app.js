@@ -462,36 +462,30 @@ function toMarkdown(editor) {
 }
 
 // Improved list logic: use insertHTML for <ul>/<ol>/<li>
-function handleToolbar(cmd, editor, imgInput) {
+function handleToolbar(cmd, editor) {
   document.execCommand('styleWithCSS', false, false);
   switch (cmd) {
-    case 'h1': {
-      document.execCommand('formatBlock', false, 'H1');
-      break;
-    }
-    case 'h2': {
-      document.execCommand('formatBlock', false, 'H2');
-      break;
-    }
-    case 'h3': {
-      document.execCommand('formatBlock', false, 'H3');
-      break;
-    }
-    case 'bold':
-      document.execCommand('bold');
-      break;
-    case 'italic':
-      document.execCommand('italic');
-      break;
-    case 'underline':
-      document.execCommand('underline');
-      break;
+    case 'h1': document.execCommand('formatBlock', false, 'H1'); break;
+    case 'h2': document.execCommand('formatBlock', false, 'H2'); break;
+    case 'h3': document.execCommand('formatBlock', false, 'H3'); break;
+    case 'bold': document.execCommand('bold'); break;
+    case 'italic': document.execCommand('italic'); break;
+    case 'underline': document.execCommand('underline'); break;
     case 'code': {
-      document.execCommand('formatBlock', false, 'PRE');
+      // Wrap selection in <pre><code>...</code></pre> without splitting lines
+      const sel = window.getSelection();
+      if (!sel.rangeCount) return;
+      const range = sel.getRangeAt(0);
+      const selected = range.extractContents();
+      const pre = document.createElement('pre');
+      const code = document.createElement('code');
+      code.appendChild(selected);
+      pre.appendChild(code);
+      range.insertNode(pre);
       break;
     }
     case 'warning': {
-      // Wrap selection in a warning box div
+      // Insert warning box with divider and red background
       const sel = window.getSelection();
       if (!sel.rangeCount) return;
       const range = sel.getRangeAt(0);
@@ -503,7 +497,6 @@ function handleToolbar(cmd, editor, imgInput) {
       icon.innerHTML = '&#9888;';
       const content = document.createElement('span');
       content.className = 'warning-content';
-      // Divider as first child of warning-content
       const divider = document.createElement('span');
       divider.className = 'warning-divider';
       content.appendChild(divider);
@@ -525,22 +518,35 @@ function handleToolbar(cmd, editor, imgInput) {
       document.execCommand('createLink', false, url);
       break;
     }
-    case 'ol':
-      document.execCommand('insertOrderedList');
-      break;
-    case 'ul':
-      document.execCommand('insertUnorderedList');
-      break;
-    case 'image':
+    case 'ol': document.execCommand('insertOrderedList'); break;
+    case 'ul': document.execCommand('insertUnorderedList'); break;
+    case 'image': {
+      // Open file dialog and insert image with max-width: 100%
+      const imgInput = document.createElement('input');
+      imgInput.type = 'file';
+      imgInput.accept = 'image/*';
+      imgInput.onchange = async (e) => {
+        const file = imgInput.files[0];
+        if (!file) return;
+        const formData = new FormData();
+        formData.append('file', file);
+        const res = await fetch(`${API_BASE}/images/${state.selected || 'untitled'}`, { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.success) {
+          const img = document.createElement('img');
+          img.src = data.url;
+          img.style.maxWidth = '100%';
+          img.style.height = 'auto';
+          insertAtCursor(editor, img.outerHTML);
+        } else {
+          alert('Image upload failed');
+        }
+      };
       imgInput.click();
       break;
-    case 'quote': {
-      document.execCommand('formatBlock', false, 'BLOCKQUOTE');
-      break;
     }
-    case 'hr':
-      document.execCommand('insertHorizontalRule');
-      break;
+    case 'quote': document.execCommand('formatBlock', false, 'BLOCKQUOTE'); break;
+    case 'hr': document.execCommand('insertHorizontalRule'); break;
   }
 }
 
@@ -913,5 +919,24 @@ function renderTopBar() {
       right.appendChild(actionButton('edit', 'Edit', onEdit));
       right.appendChild(actionButton('delete', 'Delete', onDelete));
     }
+  }
+} 
+
+function showSaveConfirmation() {
+  const areaB2 = document.getElementById('article-content');
+  if (areaB2) {
+    const msg = document.createElement('div');
+    msg.textContent = 'Article saved!';
+    msg.style.position = 'absolute';
+    msg.style.top = '16px';
+    msg.style.right = '32px';
+    msg.style.background = '#00A9E0';
+    msg.style.color = '#fff';
+    msg.style.padding = '0.7em 1.5em';
+    msg.style.borderRadius = '8px';
+    msg.style.fontWeight = 'bold';
+    msg.style.zIndex = '2000';
+    areaB2.appendChild(msg);
+    setTimeout(() => { if (msg.parentNode) msg.parentNode.removeChild(msg); }, 1500);
   }
 } 
