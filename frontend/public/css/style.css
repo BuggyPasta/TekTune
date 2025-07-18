@@ -97,7 +97,7 @@ body {
 .main-layout {
   display: flex;
   flex-direction: row;
-  height: 100vh;
+  height: calc(100vh - var(--topbar-height));
   min-height: 0;
 }
 .sidebar {
@@ -161,6 +161,7 @@ body {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  padding: 0 !important;
 }
 .content.readonly {
   height: auto;
@@ -721,10 +722,11 @@ html, body, #app, .main-layout {
 .content.editing {
   display: flex;
   flex-direction: column;
-  height: 100vh !important;
+  height: 100%;
   overflow: hidden !important;
   min-height: 0 !important;
   padding: 0 !important;
+  margin: 0 !important;
   align-items: flex-start;
   justify-content: flex-start;
 }
