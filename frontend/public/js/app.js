@@ -222,65 +222,24 @@ function addCopyButtons(container) {
 function onAdd() {
   state.mode = 'add';
   state.selected = null;
-  state.creationStep = 'title';
   renderTopBar();
-  renderTitleInput();
+  renderAddArticleEditor();
 }
 
-function renderTitleInput() {
-  const area = $('#content-area');
-  area.innerHTML = '';
-  const wrapper = document.createElement('div');
-  wrapper.className = 'title-input-wrapper';
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.className = 'large-title-input';
-  input.placeholder = 'Enter article title...';
-  input.maxLength = 100;
-  wrapper.appendChild(input);
-  const btnRow = document.createElement('div');
-  btnRow.className = 'title-btn-row';
-  const saveBtn = document.createElement('button');
-  saveBtn.textContent = 'Save';
-  saveBtn.className = 'title-save-btn';
-  const cancelBtn = document.createElement('button');
-  cancelBtn.textContent = 'Cancel';
-  cancelBtn.className = 'title-cancel-btn';
-  btnRow.appendChild(saveBtn);
-  btnRow.appendChild(cancelBtn);
-  wrapper.appendChild(btnRow);
-  area.appendChild(wrapper);
-  input.focus();
-  saveBtn.onclick = async () => {
-    const title = input.value.trim();
-    if (!title || !/^[A-Za-z0-9 ]+$/.test(title)) {
-      alert('Title is required, can only contain letters, numbers, and spaces, and must be at most 100 characters.');
-      return;
-    }
-    // Create article with empty content
-    const res = await fetch(`${API_BASE}/articles`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, content: '' })
-    });
-    if (res.ok) {
-      state.selected = title;
-      state.mode = 'edit'; // Switch to edit mode so subsequent saves use PUT
-      state.creationStep = 'editor';
-      renderTopBar();
-      renderEditor({ title, content: '' });
-    } else {
-      const err = await res.json();
-      alert(err.error || 'Failed to create article');
-    }
-  };
-  cancelBtn.onclick = () => {
-    state.mode = 'view';
-    state.selected = null;
-    state.creationStep = null;
-    renderTopBar();
-    renderSidebar();
-  };
+function renderAddArticleEditor() {
+  // AREA B2: Show title input and editable main text area
+  const titleDiv = document.getElementById('article-title');
+  const editor = document.getElementById('editor-area');
+  titleDiv.innerHTML = '';
+  editor.innerHTML = '';
+  titleDiv.contentEditable = true;
+  titleDiv.setAttribute('placeholder', 'Enter article title...');
+  titleDiv.classList.add('editing');
+  editor.contentEditable = true;
+  editor.classList.add('editing');
+  editor.setAttribute('placeholder', 'Write your article here...');
+  // Focus title input
+  setTimeout(() => titleDiv.focus(), 0);
 }
 
 function onEdit() {
