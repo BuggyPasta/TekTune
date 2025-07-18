@@ -137,8 +137,10 @@ async function renderContentArea(mode) {
       return;
     }
     const data = await res.json();
+    // Convert markdown image syntax to <img> tags in the content
+    let htmlContent = data.content.replace(/!\[.*?\]\((.*?)\)/g, '<img src="$1" alt="Image" style="max-width:100%;display:block;margin:1.2em auto;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.10);" />');
     // Render HTML directly
-    area.innerHTML = `<div class='article-title'>${data.title}</div><div class="article-body">${data.content}</div>`;
+    area.innerHTML = `<div class='article-title'>${data.title}</div><div class="article-body">${htmlContent}</div>`;
     // Highlight code blocks
     Prism.highlightAllUnder(area);
     // Add copy buttons to code blocks (must be after Prism)

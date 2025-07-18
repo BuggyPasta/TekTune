@@ -770,15 +770,13 @@ html.editing-mode, body.editing-mode, #app.editing-mode, .main-layout.editing-mo
   justify-content: center;
   font-size: 1.5em;
   margin-right: 0.7em;
-  height: 100%;
 }
 .warning-box .warning-divider {
   display: inline-block;
   border-left: 2px solid #fff;
   margin: 0 0.7em 0 0;
-  /* Set height to match text, not icon */
-  height: 2em;
-  align-self: flex-start;
+  height: 100%;
+  align-self: stretch;
 }
 .warning-box .warning-content {
   flex: 1;
