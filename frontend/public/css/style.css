@@ -707,14 +707,13 @@ hr {
   color: #111 !important;
 } 
 
-html.editing-mode, body.editing-mode, #app.editing-mode, .main-layout.editing-mode, .content.editing {
+html, body, #app, .main-layout {
   height: 100vh !important;
   overflow: hidden !important;
-}
-
-.sidebar {
-  height: 100vh;
-  overflow-y: auto;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex;
+  flex-direction: column;
 }
 
 .content.editing {
@@ -722,14 +721,25 @@ html.editing-mode, body.editing-mode, #app.editing-mode, .main-layout.editing-mo
   flex-direction: column;
   height: 100vh !important;
   overflow: hidden !important;
-}
-.content.readonly {
-  height: auto;
-  overflow-y: auto;
-  display: block;
+  min-height: 0 !important;
+  padding: 0 !important;
 }
 
-.editor-area {
+.editor-frame-c {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  background: transparent !important;
+  z-index: 10;
+}
+.editor-frame-d {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto !important;
+  min-height: 0;
+}
+.editor-frame-d .editor-area {
   flex: 1 1 auto;
   overflow-y: auto !important;
   height: 100%;
