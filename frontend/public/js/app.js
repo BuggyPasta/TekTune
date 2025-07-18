@@ -18,25 +18,28 @@ function $(id) {
   return document.getElementById(id);
 }
 
-function renderTopBar() {
-  const left = $('toolbar-left');
-  const right = $('toolbar-right');
-  left.innerHTML = '';
-  right.innerHTML = '';
-  if (state.mode === 'edit' || state.mode === 'add') {
-    // Toolbar (left)
-    left.appendChild(renderToolbar());
-    // Close/Save (right)
-    right.appendChild(actionButton('close', 'Close', onClose));
-    right.appendChild(actionButton('save', 'Save', onSave));
-  } else {
-    // Read-only: Add always visible
-    right.appendChild(actionButton('add', 'Add Article', onAdd));
-    if (state.selected) {
-      right.appendChild(actionButton('edit', 'Edit', onEdit));
-      right.appendChild(actionButton('delete', 'Delete', onDelete));
-    }
-  }
+// Move renderToolbar to top-level so it is always defined before use
+function renderToolbar() {
+  const toolbar = document.createElement('div');
+  toolbar.className = 'editor-toolbar';
+  toolbar.innerHTML =
+    `<div class="toolbar-grid">
+      <button type="button" data-cmd="h1" aria-label="Heading 1"><span class="toolbar-icon">H1</span><span class="toolbar-label">Heading 1</span></button>
+      <button type="button" data-cmd="h2" aria-label="Heading 2"><span class="toolbar-icon">H2</span><span class="toolbar-label">Heading 2</span></button>
+      <button type="button" data-cmd="h3" aria-label="Heading 3"><span class="toolbar-icon">H3</span><span class="toolbar-label">Heading 3</span></button>
+      <button type="button" data-cmd="bold" aria-label="Bold"><span class="toolbar-icon"><b>B</b></span><span class="toolbar-label">Bold</span></button>
+      <button type="button" data-cmd="italic" aria-label="Italic"><span class="toolbar-icon"><i>I</i></span><span class="toolbar-label">Italic</span></button>
+      <button type="button" data-cmd="underline" aria-label="Underline"><span class="toolbar-icon"><u>U</u></span><span class="toolbar-label">Underline</span></button>
+      <button type="button" data-cmd="code" aria-label="Code block"><span class="toolbar-icon">&lt;/&gt;</span><span class="toolbar-label">Code</span></button>
+      <button type="button" data-cmd="warning" aria-label="Warning box"><span class="toolbar-icon">&#9888;</span><span class="toolbar-label">Warning</span></button>
+      <button type="button" data-cmd="link" aria-label="Link"><span class="toolbar-icon">🔗</span><span class="toolbar-label">Link</span></button>
+      <button type="button" data-cmd="ol" aria-label="Numbered list"><span class="toolbar-icon">1.</span><span class="toolbar-label">Numbered</span></button>
+      <button type="button" data-cmd="ul" aria-label="Bullet list"><span class="toolbar-icon">•</span><span class="toolbar-label">Bullets</span></button>
+      <button type="button" data-cmd="image" aria-label="Image"><span class="toolbar-icon">🖼️</span><span class="toolbar-label">Image</span></button>
+      <button type="button" data-cmd="quote" aria-label="Quote"><span class="toolbar-icon">❝</span><span class="toolbar-label">Quote</span></button>
+      <button type="button" data-cmd="hr" aria-label="Horizontal rule"><span class="toolbar-icon">―</span><span class="toolbar-label">Divider</span></button>
+    </div>`;
+  return toolbar;
 }
 
 function actionButton(icon, text, handler) {
@@ -60,15 +63,17 @@ async function fetchArticles() {
   renderSidebar();
 }
 
+// Remove all calls to renderContentArea and any code referencing #content-area
+// Remove legacy renderContentArea, setBodyScroll, and any code using #content-area
+// Update all sidebar logic to use #article-list
 function renderSidebar() {
-  const sidebar = $('#article-list');
+  const sidebar = document.getElementById('article-list');
   sidebar.innerHTML = '';
   if (state.articles.length === 0) {
     const msg = document.createElement('div');
     msg.className = 'empty-msg';
     msg.textContent = 'No articles found. Create your first article!';
     sidebar.appendChild(msg);
-    renderContentArea('welcome');
     return;
   }
   state.articles.forEach(title => {
@@ -79,9 +84,6 @@ function renderSidebar() {
     if (state.selected === title) btn.classList.add('selected');
     sidebar.appendChild(btn);
   });
-  if (!state.selected) {
-    renderContentArea('choose');
-  }
 }
 
 async function selectArticle(title) {
