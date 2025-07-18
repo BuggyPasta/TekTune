@@ -725,6 +725,8 @@ html, body, #app, .main-layout {
   overflow: hidden !important;
   min-height: 0 !important;
   padding: 0 !important;
+  align-items: flex-start;
+  justify-content: flex-start;
 }
 
 .editor-frame-c {
