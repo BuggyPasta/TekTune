@@ -226,41 +226,328 @@ function onAdd() {
   renderAddArticleEditor();
 }
 
-function renderAddArticleEditor() {
-  // AREA B2: Show title input and editable main text area
-  const titleDiv = document.getElementById('article-title');
-  const editor = document.getElementById('editor-area');
-  titleDiv.innerHTML = '';
-  editor.innerHTML = '';
-  titleDiv.contentEditable = true;
-  titleDiv.setAttribute('placeholder', 'Enter article title...');
-  titleDiv.classList.add('editing');
-  editor.contentEditable = true;
-  editor.classList.add('editing');
-  editor.setAttribute('placeholder', 'Write your article here...');
-  // Focus title input
-  setTimeout(() => titleDiv.focus(), 0);
+// --- Modal Root Helper ---
+function getModalRoot() {
+  let modalRoot = document.getElementById('modal-root');
+  if (!modalRoot) {
+    modalRoot = document.createElement('div');
+    modalRoot.id = 'modal-root';
+    document.body.appendChild(modalRoot);
+  }
+  return modalRoot;
 }
 
-function onEdit() {
-  state.mode = 'edit';
+// --- Delete Modal ---
+function showDeleteModal(title) {
+  const modalRoot = getModalRoot();
+  modalRoot.innerHTML = `
+    <div class="modal">
+      <div class="modal-content">
+        <div class="delete-modal-texts">
+          <div class="delete-modal-line1">Are you sure you want to delete the article below?</div>
+          <div class="delete-modal-title">${title}</div>
+          <div class="delete-modal-line3">This action is <b>NOT</b> reversible, you <b>WILL</b> lose this data forever.</div>
+        </div>
+        <div class="delete-modal-buttons">
+          <button id="cancel-delete" class="delete-cancel-btn" autofocus>No, do NOT delete this article, I need it!</button>
+          <button id="confirm-delete" class="delete-confirm-btn">Yes, I do not want this article anymore</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('confirm-delete').onclick = () => {
+    fetch(`${API_BASE}/articles/${encodeURIComponent(title)}`, { method: 'DELETE' })
+      .then(res => {
+        if (res.ok) {
+          state.selected = null;
+          state.mode = 'view';
+          fetchArticles();
+          renderTopBar();
+          renderContentArea('article'); // Changed from renderArticle() to renderContentArea('article')
+        } else {
+          alert('Failed to delete article');
+        }
+        modalRoot.innerHTML = '';
+      });
+  };
+  document.getElementById('cancel-delete').onclick = () => {
+    modalRoot.innerHTML = '';
+  };
+}
+
+// --- Save Changes Modal (for edit/close) ---
+function showSaveChangesModal(onYes, onNo) {
+  const modalRoot = getModalRoot();
+  modalRoot.innerHTML = `
+    <div class="modal">
+      <div class="modal-content">
+        <div class="delete-modal-texts">
+          <div class="delete-modal-line1">Save changes?</div>
+        </div>
+        <div class="delete-modal-buttons">
+          <button id="save-changes-yes" class="action-btn">Yes please</button>
+          <button id="save-changes-no" class="action-btn">No, thank you</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('save-changes-yes').onclick = () => {
+    modalRoot.innerHTML = '';
+    onYes();
+  };
+  document.getElementById('save-changes-no').onclick = () => {
+    modalRoot.innerHTML = '';
+    onNo();
+  };
+}
+
+// --- Robust onDelete ---
+function onDelete() {
+  if (!state.selected) return;
+  showDeleteModal(state.selected);
+}
+
+// --- Robust onClose ---
+function onClose() {
+  if (state.mode === 'edit' || state.mode === 'add') {
+    // Check for unsaved changes
+    const areaB2 = document.getElementById('article-content');
+    const editor = areaB2.querySelector('.editor-area');
+    const titleInput = areaB2.querySelector('.editor-title') || document.getElementById('article-title');
+    const currentContent = editor ? editor.innerHTML : '';
+    const currentTitle = titleInput ? (titleInput.value || titleInput.innerText) : '';
+    if ((currentContent && currentContent !== (state.lastSavedContent || '')) || (currentTitle && currentTitle !== (state.lastSavedTitle || ''))) {
+      showSaveChangesModal(() => onSave(), () => {
+        state.mode = 'view';
+        renderTopBar();
+        renderContentArea('article'); // Changed from renderArticle() to renderContentArea('article')
+      });
+      return;
+    }
+  }
+  state.mode = 'view';
   renderTopBar();
-  fetchCurrentArticleForEdit();
+  renderContentArea('article'); // Changed from renderArticle() to renderContentArea('article')
 }
 
-async function fetchCurrentArticleForEdit() {
-  const res = await fetch(`${API_BASE}/articles/${encodeURIComponent(state.selected)}`);
-  if (!res.ok) {
-    renderContentArea('error');
+// --- Robust onSave ---
+function onSave() {
+  const areaB2 = document.getElementById('article-content');
+  const titleInput = areaB2.querySelector('.editor-title') || document.getElementById('article-title');
+  const editor = areaB2.querySelector('.editor-area') || document.getElementById('editor-area');
+  const title = titleInput ? (titleInput.value || titleInput.innerText).trim() : '';
+  const content = editor ? editor.innerHTML : '';
+  if (!title) {
+    alert('Title is required.');
     return;
   }
-  const data = await res.json();
-  renderEditor(data);
+  if (state.mode === 'add') {
+    fetch(`${API_BASE}/articles`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, content })
+    }).then(res => {
+      if (res.ok) {
+        state.mode = 'view';
+        fetchArticles();
+        renderTopBar();
+        renderContentArea('article'); // Changed from renderArticle() to renderContentArea('article')
+      } else {
+        alert('Failed to create article');
+      }
+    });
+    return;
+  }
+  if (state.mode === 'edit') {
+    fetch(`${API_BASE}/articles/${encodeURIComponent(state.selected)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, content })
+    }).then(res => {
+      if (res.ok) {
+        state.mode = 'view';
+        fetchArticles();
+        renderTopBar();
+        renderContentArea('article'); // Changed from renderArticle() to renderContentArea('article')
+      } else {
+        alert('Failed to update article');
+      }
+    });
+    return;
+  }
 }
 
-// 3. & 4. Preserve formatting and line breaks in editor
-// Store and restore editor HTML directly for editing
-let lastSavedContent = '';
+// Improved toMarkdown: preserve line breaks
+function toMarkdown(editor) {
+  // Convert HTML to Markdown, preserving line breaks
+  let html = editor.innerHTML;
+  // Replace <div> and <br> with \n
+  html = html.replace(/<div><br><\/div>/g, '\n'); // empty divs
+  html = html.replace(/<div>/g, '\n');
+  html = html.replace(/<br>/g, '\n');
+  html = html.replace(/<\/div>/g, '');
+  // Remove any remaining HTML tags (simple)
+  html = html.replace(/<[^>]+>/g, '');
+  return html;
+}
+
+// Improved list logic: use insertHTML for <ul>/<ol>/<li>
+function handleToolbar(cmd, editor, imgInput) {
+  document.execCommand('styleWithCSS', false, false);
+  switch (cmd) {
+    case 'h1': {
+      document.execCommand('formatBlock', false, 'H1');
+      break;
+    }
+    case 'h2': {
+      document.execCommand('formatBlock', false, 'H2');
+      break;
+    }
+    case 'h3': {
+      document.execCommand('formatBlock', false, 'H3');
+      break;
+    }
+    case 'bold':
+      document.execCommand('bold');
+      break;
+    case 'italic':
+      document.execCommand('italic');
+      break;
+    case 'underline':
+      document.execCommand('underline');
+      break;
+    case 'code': {
+      document.execCommand('formatBlock', false, 'PRE');
+      break;
+    }
+    case 'warning': {
+      // Wrap selection in a warning box div
+      const sel = window.getSelection();
+      if (!sel.rangeCount) return;
+      const range = sel.getRangeAt(0);
+      const selected = range.extractContents();
+      const box = document.createElement('div');
+      box.className = 'warning-box';
+      const icon = document.createElement('span');
+      icon.className = 'warning-icon';
+      icon.innerHTML = '&#9888;';
+      const content = document.createElement('span');
+      content.className = 'warning-content';
+      // Divider as first child of warning-content
+      const divider = document.createElement('span');
+      divider.className = 'warning-divider';
+      content.appendChild(divider);
+      content.appendChild(selected);
+      box.appendChild(icon);
+      box.appendChild(content);
+      range.insertNode(box);
+      break;
+    }
+    case 'link': {
+      const sel = window.getSelection();
+      if (!sel.rangeCount) return;
+      const selectedText = sel.toString().trim();
+      let url = selectedText;
+      if (!isValidURL(selectedText)) {
+        url = prompt('Enter URL:');
+        if (!url) return;
+      }
+      document.execCommand('createLink', false, url);
+      break;
+    }
+    case 'ol':
+      document.execCommand('insertOrderedList');
+      break;
+    case 'ul':
+      document.execCommand('insertUnorderedList');
+      break;
+    case 'image':
+      imgInput.click();
+      break;
+    case 'quote': {
+      document.execCommand('formatBlock', false, 'BLOCKQUOTE');
+      break;
+    }
+    case 'hr':
+      document.execCommand('insertHorizontalRule');
+      break;
+  }
+}
+
+function insertAtCursor(editor, text) {
+  document.execCommand('insertText', false, text);
+}
+
+function surroundSelection(editor, before, after, prefixOnly = false) {
+  const sel = window.getSelection();
+  if (!sel.rangeCount) return;
+  const range = sel.getRangeAt(0);
+  const selected = range.toString();
+  if (selected) {
+    if (prefixOnly) {
+      // For H1, H2, H3, bullets, numbered, quote: prefix each line
+      const lines = selected.split('\n');
+      const prefix = before;
+      const newText = lines.map(line => line ? prefix + line : '').join('\n');
+      document.execCommand('insertText', false, newText);
+    } else {
+      document.execCommand('insertText', false, before + selected + after);
+    }
+  } else {
+    if (prefixOnly) {
+      document.execCommand('insertText', false, before);
+    } else {
+      document.execCommand('insertText', false, before + after);
+    }
+  }
+}
+
+// --- Robust Toolbar Handler ---
+function renderAddArticleEditor() {
+  // Completely re-render AREA B2
+  const areaB2 = document.getElementById('article-content');
+  areaB2.innerHTML = '';
+
+  // Title input
+  const titleInput = document.createElement('input');
+  titleInput.type = 'text';
+  titleInput.className = 'editor-title';
+  titleInput.placeholder = 'Enter article title...';
+  titleInput.maxLength = 100;
+  areaB2.appendChild(titleInput);
+
+  // Main text editor
+  const editor = document.createElement('div');
+  editor.className = 'editor-area editing';
+  editor.contentEditable = true;
+  editor.spellcheck = true;
+  editor.setAttribute('placeholder', 'Write your article here...');
+  areaB2.appendChild(editor);
+
+  // Focus title input
+  setTimeout(() => titleInput.focus(), 0);
+
+  // Always re-render AREA B1 to ensure toolbar event handlers are correct
+  renderTopBar();
+
+  // Attach toolbar actions to this editor
+  const toolbar = document.querySelector('.editor-toolbar');
+  if (toolbar) {
+    toolbar.onclick = (e) => {
+      if (e.target.closest('button')) {
+        const cmd = e.target.closest('button').dataset.cmd;
+        handleToolbar(cmd, editor);
+      }
+    };
+  }
+
+  // Fallback: if editor or title input is missing, re-render AREA B2
+  if (!areaB2.contains(titleInput) || !areaB2.contains(editor)) {
+    renderAddArticleEditor();
+  }
+}
+
+// --- Robust Toolbar Handler for Edit Mode ---
 function renderEditor({ title, content }) {
   state.creationStep = 'editor';
   lastSavedContent = content;
@@ -455,246 +742,39 @@ function renderEditor({ title, content }) {
   renderTopBar();
 }
 
-// Improved toMarkdown: preserve line breaks
-function toMarkdown(editor) {
-  // Convert HTML to Markdown, preserving line breaks
-  let html = editor.innerHTML;
-  // Replace <div> and <br> with \n
-  html = html.replace(/<div><br><\/div>/g, '\n'); // empty divs
-  html = html.replace(/<div>/g, '\n');
-  html = html.replace(/<br>/g, '\n');
-  html = html.replace(/<\/div>/g, '');
-  // Remove any remaining HTML tags (simple)
-  html = html.replace(/<[^>]+>/g, '');
-  return html;
-}
-
-// Improved list logic: use insertHTML for <ul>/<ol>/<li>
-function handleToolbar(cmd, editor, imgInput) {
-  document.execCommand('styleWithCSS', false, false);
-  switch (cmd) {
-    case 'h1': {
-      document.execCommand('formatBlock', false, 'H1');
-      break;
-    }
-    case 'h2': {
-      document.execCommand('formatBlock', false, 'H2');
-      break;
-    }
-    case 'h3': {
-      document.execCommand('formatBlock', false, 'H3');
-      break;
-    }
-    case 'bold':
-      document.execCommand('bold');
-      break;
-    case 'italic':
-      document.execCommand('italic');
-      break;
-    case 'underline':
-      document.execCommand('underline');
-      break;
-    case 'code': {
-      document.execCommand('formatBlock', false, 'PRE');
-      break;
-    }
-    case 'warning': {
-      // Wrap selection in a warning box div
-      const sel = window.getSelection();
-      if (!sel.rangeCount) return;
-      const range = sel.getRangeAt(0);
-      const selected = range.extractContents();
-      const box = document.createElement('div');
-      box.className = 'warning-box';
-      const icon = document.createElement('span');
-      icon.className = 'warning-icon';
-      icon.innerHTML = '&#9888;';
-      const content = document.createElement('span');
-      content.className = 'warning-content';
-      // Divider as first child of warning-content
-      const divider = document.createElement('span');
-      divider.className = 'warning-divider';
-      content.appendChild(divider);
-      content.appendChild(selected);
-      box.appendChild(icon);
-      box.appendChild(content);
-      range.insertNode(box);
-      break;
-    }
-    case 'link': {
-      const sel = window.getSelection();
-      if (!sel.rangeCount) return;
-      const selectedText = sel.toString().trim();
-      let url = selectedText;
-      if (!isValidURL(selectedText)) {
-        url = prompt('Enter URL:');
-        if (!url) return;
-      }
-      document.execCommand('createLink', false, url);
-      break;
-    }
-    case 'ol':
-      document.execCommand('insertOrderedList');
-      break;
-    case 'ul':
-      document.execCommand('insertUnorderedList');
-      break;
-    case 'image':
-      imgInput.click();
-      break;
-    case 'quote': {
-      document.execCommand('formatBlock', false, 'BLOCKQUOTE');
-      break;
-    }
-    case 'hr':
-      document.execCommand('insertHorizontalRule');
-      break;
-  }
-}
-
-function insertAtCursor(editor, text) {
-  document.execCommand('insertText', false, text);
-}
-
-function surroundSelection(editor, before, after, prefixOnly = false) {
-  const sel = window.getSelection();
-  if (!sel.rangeCount) return;
-  const range = sel.getRangeAt(0);
-  const selected = range.toString();
-  if (selected) {
-    if (prefixOnly) {
-      // For H1, H2, H3, bullets, numbered, quote: prefix each line
-      const lines = selected.split('\n');
-      const prefix = before;
-      const newText = lines.map(line => line ? prefix + line : '').join('\n');
-      document.execCommand('insertText', false, newText);
-    } else {
-      document.execCommand('insertText', false, before + selected + after);
-    }
-  } else {
-    if (prefixOnly) {
-      document.execCommand('insertText', false, before);
-    } else {
-      document.execCommand('insertText', false, before + after);
-    }
-  }
-}
-
-function onDelete() {
-  // Show confirmation modal
-  showDeleteModal(state.selected);
-}
-
-function showDeleteModal(title) {
-  const area = $('#content-area');
-  const modal = document.createElement('div');
-  modal.className = 'modal';
-  modal.innerHTML = `
-    <div class="modal-content">
-      <div class="delete-modal-texts">
-        <div class="delete-modal-line1">Are you sure you want to delete the article below?</div>
-        <div class="delete-modal-title">${title}</div>
-        <div class="delete-modal-line3">This action is <b>NOT</b> reversible, you <b>WILL</b> lose this data forever.</div>
-      </div>
-      <div class="delete-modal-buttons">
-        <button id="cancel-delete" class="delete-cancel-btn" autofocus>No, do NOT delete this article, I need it!</button>
-        <button id="confirm-delete" class="delete-confirm-btn">Yes, I do not want this article anymore</button>
-      </div>
-    </div>
-  `;
-  area.appendChild(modal);
-  document.getElementById('confirm-delete').onclick = () => {
-    // Show second confirmation modal
-    const confirmModal = document.createElement('div');
-    confirmModal.className = 'modal';
-    confirmModal.innerHTML = `
-      <div class="modal-content">
-        <div class="delete-modal-texts">
-          <div class="delete-modal-line1">Are you sure?</div>
-        </div>
-        <div class="delete-modal-buttons">
-          <button id="final-cancel-delete" class="delete-cancel-btn" autofocus>No</button>
-          <button id="final-confirm-delete" class="delete-confirm-btn">Yes</button>
-        </div>
-      </div>
-    `;
-    area.appendChild(confirmModal);
-    document.getElementById('final-confirm-delete').onclick = async () => {
-      const res = await fetch(`${API_BASE}/articles/${encodeURIComponent(title)}`, { method: 'DELETE' });
-      if (res.ok) {
-        state.selected = null;
-        state.mode = 'view';
-        await fetchArticles();
-        renderTopBar();
-        renderSidebar();
-      } else {
-        alert('Failed to delete article');
-      }
-      confirmModal.remove();
-      modal.remove();
-    };
-    document.getElementById('final-cancel-delete').onclick = () => {
-      confirmModal.remove();
-    };
-  };
-  document.getElementById('cancel-delete').onclick = () => {
-    modal.remove();
-  };
-}
-
-function onClose() {
-  const editor = document.querySelector('.editor-area');
-  const currentContent = editor.innerHTML;
-  if (currentContent !== lastSavedContent) {
-    // Show modal
-    showSaveChangesModal();
-  } else {
-    // No changes, just close
-    state.mode = 'view';
-    renderTopBar();
-    renderContentArea('article');
-    renderSidebar();
-  }
-}
-
-// 2. Save changes modal: blue buttons, ensure they work
-function showSaveChangesModal() {
-  const area = $('#content-area');
-  const modal = document.createElement('div');
-  modal.className = 'modal';
-  modal.innerHTML = `
-    <div class="modal-content">
-      <div class="delete-modal-texts">
-        <div class="delete-modal-line1">Save changes?</div>
-      </div>
-      <div class="delete-modal-buttons">
-        <button id="save-changes-yes" class="action-btn">Yes please</button>
-        <button id="save-changes-no" class="action-btn">No, thank you</button>
-      </div>
-    </div>
-  `;
-  area.appendChild(modal);
-  document.getElementById('save-changes-yes').onclick = async () => {
-    await window.onSave();
-    modal.remove();
-    state.mode = 'view';
-    renderTopBar();
-    renderContentArea('article');
-    renderSidebar();
-  };
-  document.getElementById('save-changes-no').onclick = () => {
-    modal.remove();
-    state.mode = 'view';
-    renderTopBar();
-    renderContentArea('article');
-    renderSidebar();
-  };
-}
-
-// Initial load
-window.addEventListener('DOMContentLoaded', () => {
+function onEdit() {
+  state.mode = 'edit';
   renderTopBar();
+  fetchCurrentArticleForEdit();
+}
+
+async function fetchCurrentArticleForEdit() {
+  const res = await fetch(`${API_BASE}/articles/${encodeURIComponent(state.selected)}`);
+  if (!res.ok) {
+    renderContentArea('error');
+    return;
+  }
+  const data = await res.json();
+  renderEditor(data);
+}
+
+// --- Ensure sidebar always updates after add/edit/delete ---
+async function fetchArticles() {
+  const res = await fetch(`${API_BASE}/articles`);
+  state.articles = await res.json();
+  renderSidebar();
+  // If the selected article was deleted, clear selection
+  if (state.selected && !state.articles.includes(state.selected)) {
+    state.selected = null;
+    renderContentArea('choose');
+  }
+}
+
+// --- Ensure no blank or broken screens ---
+window.addEventListener('DOMContentLoaded', () => {
   fetchArticles();
+  renderTopBar();
+  renderContentArea('article');
 });
 
 // For clipboard paste, add:
