@@ -601,14 +601,46 @@ function handleToolbar(cmd, editor) {
         const selected = range.extractContents();
         const box = document.createElement('div');
         box.className = 'warning-box';
+        box.style.display = 'flex';
+        box.style.alignItems = 'flex-start';
+        box.style.background = '#D32F2F';
+        box.style.color = '#fff';
+        box.style.borderRadius = '8px';
+        box.style.border = '2px solid #b71c1c';
+        box.style.padding = '1em';
+        box.style.margin = '1.2em 0';
+        box.style.fontSize = '1em';
+        box.style.fontWeight = 'bold';
+        box.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+        box.style.lineHeight = '1.4';
+        
         const icon = document.createElement('span');
         icon.className = 'warning-icon';
         icon.innerHTML = '&#9888;';
+        icon.style.display = 'flex';
+        icon.style.alignItems = 'flex-start';
+        icon.style.justifyContent = 'center';
+        icon.style.fontSize = '1.5em';
+        icon.style.marginRight = '0.7em';
+        icon.style.height = '100%';
+        icon.style.flexShrink = '0';
+        
         const divider = document.createElement('span');
         divider.className = 'warning-divider';
+        divider.style.display = 'inline-block';
+        divider.style.borderLeft = '2px solid #fff';
+        divider.style.margin = '0 0.7em 0 0';
+        divider.style.height = '100%';
+        divider.style.alignSelf = 'stretch';
+        divider.style.width = '2px';
+        divider.style.flexShrink = '0';
+        
         const content = document.createElement('span');
         content.className = 'warning-content';
+        content.style.flex = '1';
+        content.style.display = 'block';
         content.appendChild(selected);
+        
         box.appendChild(icon);
         box.appendChild(divider);
         box.appendChild(content);
@@ -675,7 +707,11 @@ function handleToolbar(cmd, editor) {
           }
         } catch (error) {
           console.error('Image upload error:', error);
-          alert('Image upload failed: ' + error.message);
+          if (error.message.includes('fetch')) {
+            alert('Image upload failed: Cannot connect to server. Please check if the backend is running.');
+          } else {
+            alert('Image upload failed: ' + error.message);
+          }
         }
       };
       imgInput.click();
