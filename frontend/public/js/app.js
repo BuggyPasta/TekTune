@@ -162,6 +162,34 @@ async function renderContentArea(mode) {
   }
 }
 
+// Ensure editor is properly disabled when switching to view mode
+function disableEditor() {
+  const editor = document.querySelector('.editor-area');
+  const titleInput = document.querySelector('.editor-title');
+  if (editor) {
+    editor.contentEditable = 'false';
+    editor.style.pointerEvents = 'none';
+  }
+  if (titleInput) {
+    titleInput.readOnly = true;
+    titleInput.style.pointerEvents = 'none';
+  }
+}
+
+// Ensure editor is properly enabled when switching to edit mode
+function enableEditor() {
+  const editor = document.querySelector('.editor-area');
+  const titleInput = document.querySelector('.editor-title');
+  if (editor) {
+    editor.contentEditable = 'true';
+    editor.style.pointerEvents = 'auto';
+  }
+  if (titleInput) {
+    titleInput.readOnly = false;
+    titleInput.style.pointerEvents = 'auto';
+  }
+}
+
 function addCopyButtons(container) {
   if (!container) return;
   const blocks = container.querySelectorAll('pre > code');
@@ -233,71 +261,77 @@ function onAdd() {
 }
 
 function renderAddArticleUI() {
-  try {
-    // --- AREA B1: Toolbar + Save/Close ---
-    const left = document.getElementById('toolbar-left');
-    const right = document.getElementById('toolbar-right');
-    if (left) left.innerHTML = '';
-    if (right) right.innerHTML = '';
-    // Toolbar (left)
-    const toolbar = renderToolbar();
-    if (left) left.appendChild(toolbar);
-    // Save/Close (right)
-    if (right) {
-      right.appendChild(actionButton('close', 'Close', onClose));
-      right.appendChild(actionButton('save', 'Save', onSave));
-    }
+  // Completely re-render AREA B2
+  const areaB2 = document.getElementById('article-content');
+  areaB2.innerHTML = '';
 
-    // --- AREA B2: Title input + Editor ---
-    const areaB2 = document.getElementById('article-content');
-    // Remove all children
-    while (areaB2 && areaB2.firstChild) areaB2.removeChild(areaB2.firstChild);
-    // Title input
-    const titleInput = document.createElement('input');
-    titleInput.type = 'text';
-    titleInput.className = 'editor-title';
-    titleInput.placeholder = 'Enter article title...';
-    titleInput.maxLength = 100;
-    if (areaB2) areaB2.appendChild(titleInput);
-    // Main text editor
-    const editor = document.createElement('div');
-    editor.className = 'editor-area editing';
-    editor.contentEditable = true;
-    editor.spellcheck = true;
-    editor.setAttribute('placeholder', 'Write your article here...');
-    if (areaB2) areaB2.appendChild(editor);
-    // Focus title input
-    setTimeout(() => titleInput.focus(), 0);
-    // Attach toolbar actions to this editor
-    if (toolbar) {
-      toolbar.onclick = (e) => {
-        if (e.target.closest('button')) {
-          const cmd = e.target.closest('button').dataset.cmd;
-          handleToolbar(cmd, editor);
+  // Title input
+  const titleInput = document.createElement('input');
+  titleInput.type = 'text';
+  titleInput.className = 'editor-title';
+  titleInput.placeholder = 'Enter article title...';
+  titleInput.value = '';
+  areaB2.appendChild(titleInput);
+
+  // Editor area
+  const editor = document.createElement('div');
+  editor.className = 'editor-area';
+  editor.contentEditable = 'true';
+  editor.innerHTML = '<p>Start writing your article...</p>';
+  areaB2.appendChild(editor);
+
+  // Enable editor
+  enableEditor();
+
+  // Focus on title input
+  titleInput.focus();
+
+  // Attach event handlers
+  titleInput.addEventListener('input', () => {
+    state.unsaved = true;
+  });
+
+  editor.addEventListener('input', () => {
+    state.unsaved = true;
+  });
+
+  // Handle paste events for images
+  editor.addEventListener('paste', async (e) => {
+    const items = (e.clipboardData || window.clipboardData).items;
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.kind === 'file' && item.type.startsWith('image/')) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        const formData = new FormData();
+        formData.append('file', file);
+        const res = await fetch(`${API_BASE}/images/untitled`, { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.success) {
+          insertAtCursor(editor, `![](${data.url})`);
+        } else {
+          alert('Image upload failed');
         }
-      };
-    }
-    // Attach Save/Close event handlers again (in case buttons were replaced)
-    if (right) {
-      const closeBtn = right.querySelector('.action-btn:nth-child(1)');
-      const saveBtn = right.querySelector('.action-btn:nth-child(2)');
-      if (closeBtn) closeBtn.onclick = onClose;
-      if (saveBtn) saveBtn.onclick = onSave;
-    }
-    // Fallback: if any element is missing, show error and log
-    if (!left || !right || !areaB2 || !titleInput || !editor) {
-      if (areaB2) {
-        areaB2.innerHTML = '<div style="color:#ff4444;padding:2em;text-align:center;font-size:1.2em;">Error: Could not render Add Article UI. Please check the console for details.</div>';
+        break;
       }
-      console.error('Add Article UI render error:', { left, right, areaB2, titleInput, editor });
     }
-  } catch (err) {
-    const areaB2 = document.getElementById('article-content');
-    if (areaB2) {
-      areaB2.innerHTML = '<div style="color:#ff4444;padding:2em;text-align:center;font-size:1.2em;">Error: Exception while rendering Add Article UI. Please check the console for details.</div>';
-    }
-    console.error('Exception in renderAddArticleUI:', err);
+  });
+
+  // Handle toolbar clicks
+  const toolbar = document.querySelector('.editor-toolbar');
+  if (toolbar) {
+    toolbar.addEventListener('click', (e) => {
+      if (e.target.closest('button')) {
+        const cmd = e.target.closest('button').dataset.cmd;
+        handleToolbar(cmd, editor);
+      }
+    });
   }
+
+  // Set state
+  state.mode = 'add';
+  state.creationStep = 'editor';
+  state.unsaved = false;
 }
 
 // --- Modal Root Helper ---
@@ -370,13 +404,11 @@ function showSaveChangesModal(onYes, onNo) {
   modal.querySelector('#yes-btn').onclick = () => {
     modal.remove();
     onSave();
-    state.mode = 'view';
-    renderTopBar();
-    renderContentArea('article');
   };
   
   modal.querySelector('#no-btn').onclick = () => {
     modal.remove();
+    disableEditor();
     state.mode = 'view';
     renderTopBar();
     renderContentArea('article');
@@ -404,6 +436,7 @@ function onClose() {
     }
   }
   state.mode = 'view';
+  disableEditor();
   renderTopBar();
   renderContentArea('article');
 }
@@ -413,21 +446,37 @@ function onSave() {
   const areaB2 = document.getElementById('article-content');
   const titleInput = areaB2.querySelector('.editor-title') || document.getElementById('article-title');
   const editor = areaB2.querySelector('.editor-area') || document.getElementById('editor-area');
-  const title = titleInput ? (titleInput.value || titleInput.innerText).trim() : '';
+  const displayTitle = titleInput ? (titleInput.value || titleInput.innerText).trim() : '';
   const content = editor ? editor.innerHTML : '';
-  if (!title) {
+  
+  if (!displayTitle) {
     alert('Title is required.');
     return;
   }
+  
+  // Convert display title to safe folder name
+  const safeTitle = displayTitle
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '') // Remove all symbols except letters, numbers, spaces
+    .replace(/\s+/g, '_') // Replace spaces with underscores
+    .replace(/_+/g, '_') // Replace multiple underscores with single
+    .replace(/^_|_$/g, ''); // Remove leading/trailing underscores
+  
+  if (!safeTitle) {
+    alert('Title must contain at least one letter or number.');
+    return;
+  }
+  
   if (state.mode === 'add') {
     fetch(`${API_BASE}/articles`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, content })
+      body: JSON.stringify({ title: safeTitle, content, displayTitle })
     }).then(res => {
       if (res.ok) {
         state.mode = 'view';
-        state.selected = title;
+        state.selected = safeTitle;
+        disableEditor();
         fetchArticles();
         renderTopBar();
         renderContentArea('article');
@@ -442,11 +491,12 @@ function onSave() {
     fetch(`${API_BASE}/articles/${encodeURIComponent(state.selected)}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, content })
+      body: JSON.stringify({ title: safeTitle, content, displayTitle })
     }).then(res => {
       if (res.ok) {
         state.mode = 'view';
-        state.selected = title;
+        state.selected = safeTitle;
+        disableEditor();
         fetchArticles();
         renderTopBar();
         renderContentArea('article');
@@ -712,197 +762,76 @@ function renderAddArticleEditor() {
 
 // --- Robust Toolbar Handler for Edit Mode ---
 function renderEditor({ title, content }) {
-  state.creationStep = 'editor';
-  lastSavedContent = content;
-  console.log('renderEditor called', { title, content });
-  const area = $('#content-area');
-  area.innerHTML = '';
+  // Completely re-render AREA B2
+  const areaB2 = document.getElementById('article-content');
+  areaB2.innerHTML = '';
 
-  // --- Frame C: Title + Toolbar ---
-  const frameC = document.createElement('div');
-  frameC.className = 'editor-frame-c';
-  frameC.style.display = 'flex';
-  frameC.style.flexDirection = 'column';
-  frameC.style.flex = 'none';
-
-  // Title field
+  // Title input
   const titleInput = document.createElement('input');
   titleInput.type = 'text';
   titleInput.className = 'editor-title';
-  titleInput.value = title;
-  titleInput.placeholder = 'Article Title';
-  titleInput.maxLength = 100;
-  frameC.appendChild(titleInput);
-  console.log('Title input appended');
-
-  // Toolbar
-  const toolbar = document.createElement('div');
-  toolbar.className = 'editor-toolbar';
-  toolbar.innerHTML =
-    `<div class="toolbar-grid">
-      <button type="button" data-cmd="h1" aria-label="Heading 1">
-        <span class="toolbar-icon">H1</span>
-        <span class="toolbar-label">Heading 1</span>
-      </button>
-      <button type="button" data-cmd="h2" aria-label="Heading 2">
-        <span class="toolbar-icon">H2</span>
-        <span class="toolbar-label">Heading 2</span>
-      </button>
-      <button type="button" data-cmd="h3" aria-label="Heading 3">
-        <span class="toolbar-icon">H3</span>
-        <span class="toolbar-label">Heading 3</span>
-      </button>
-      <button type="button" data-cmd="bold" aria-label="Bold">
-        <span class="toolbar-icon"><b>B</b></span>
-        <span class="toolbar-label">Bold</span>
-      </button>
-      <button type="button" data-cmd="italic" aria-label="Italic">
-        <span class="toolbar-icon"><i>I</i></span>
-        <span class="toolbar-label">Italic</span>
-      </button>
-      <button type="button" data-cmd="underline" aria-label="Underline">
-        <span class="toolbar-icon"><u>U</u></span>
-        <span class="toolbar-label">Underline</span>
-      </button>
-      <button type="button" data-cmd="code" aria-label="Code block">
-        <span class="toolbar-icon">&lt;/&gt;</span>
-        <span class="toolbar-label">Code</span>
-      </button>
-      <button type="button" data-cmd="warning" aria-label="Warning box">
-        <span class="toolbar-icon">&#9888;</span>
-        <span class="toolbar-label">Warning</span>
-      </button>
-      <button type="button" data-cmd="link" aria-label="Link">
-        <span class="toolbar-icon">🔗</span>
-        <span class="toolbar-label">Link</span>
-      </button>
-      <button type="button" data-cmd="ol" aria-label="Numbered list">
-        <span class="toolbar-icon">1.</span>
-        <span class="toolbar-label">Numbered</span>
-      </button>
-      <button type="button" data-cmd="ul" aria-label="Bullet list">
-        <span class="toolbar-icon">•</span>
-        <span class="toolbar-label">Bullets</span>
-      </button>
-      <button type="button" data-cmd="image" aria-label="Image">
-        <span class="toolbar-icon">🖼️</span>
-        <span class="toolbar-label">Image</span>
-      </button>
-      <button type="button" data-cmd="quote" aria-label="Quote">
-        <span class="toolbar-icon">❝</span>
-        <span class="toolbar-label">Quote</span>
-      </button>
-      <button type="button" data-cmd="hr" aria-label="Horizontal rule">
-        <span class="toolbar-icon">―</span>
-        <span class="toolbar-label">Divider</span>
-      </button>
-    </div>`;
-  frameC.appendChild(toolbar);
-  area.appendChild(frameC);
-  console.log('Toolbar appended');
-
-  // --- Frame D: Editor ---
-  const frameD = document.createElement('div');
-  frameD.className = 'editor-frame-d';
-  frameD.style.flex = '1 1 auto';
-  frameD.style.display = 'flex';
-  frameD.style.flexDirection = 'column';
-  frameD.style.overflow = 'hidden';
+  titleInput.placeholder = 'Enter article title...';
+  titleInput.value = title || '';
+  areaB2.appendChild(titleInput);
 
   // Editor area
   const editor = document.createElement('div');
   editor.className = 'editor-area';
   editor.contentEditable = true;
-  editor.spellcheck = true;
-  editor.innerHTML = content || '';
-  editor.style.flex = '1 1 auto';
-  editor.style.overflowY = 'auto';
-  frameD.appendChild(editor);
-  area.appendChild(frameD);
-  console.log('Editor area appended');
+  editor.innerHTML = content || '<p>Start writing your article...</p>';
+  areaB2.appendChild(editor);
 
-  // Image upload input (hidden)
-  const imgInput = document.createElement('input');
-  imgInput.type = 'file';
-  imgInput.accept = 'image/*';
-  imgInput.style.display = 'none';
-  area.appendChild(imgInput);
-  console.log('Image input appended');
+  // Enable editor
+  enableEditor();
 
-  // Toolbar actions
-  toolbar.addEventListener('click', (e) => {
-    if (e.target.closest('button')) {
-      const cmd = e.target.closest('button').dataset.cmd;
-      handleToolbar(cmd, editor, imgInput);
+  // Focus on editor
+  editor.focus();
+
+  // Attach event handlers
+  titleInput.addEventListener('input', () => {
+    state.unsaved = true;
+  });
+
+  editor.addEventListener('input', () => {
+    state.unsaved = true;
+  });
+
+  // Handle paste events for images
+  editor.addEventListener('paste', async (e) => {
+    const items = (e.clipboardData || window.clipboardData).items;
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.kind === 'file' && item.type.startsWith('image/')) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        const formData = new FormData();
+        formData.append('file', file);
+        const res = await fetch(`${API_BASE}/images/${state.selected}`, { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.success) {
+          insertAtCursor(editor, `![](${data.url})`);
+        } else {
+          alert('Image upload failed');
+        }
+        break;
+      }
     }
   });
 
-  imgInput.addEventListener('change', async (e) => {
-    const file = imgInput.files[0];
-    if (!file) return;
-    const formData = new FormData();
-    formData.append('file', file);
-    const res = await fetch(`${API_BASE}/images/${title}`, { method: 'POST', body: formData });
-    const data = await res.json();
-    if (data.success) {
-      insertAtCursor(editor, `![](${data.url})`);
-    } else {
-      alert('Image upload failed');
-    }
-    imgInput.value = '';
-  });
+  // Handle toolbar clicks
+  const toolbar = document.querySelector('.editor-toolbar');
+  if (toolbar) {
+    toolbar.addEventListener('click', (e) => {
+      if (e.target.closest('button')) {
+        const cmd = e.target.closest('button').dataset.cmd;
+        handleToolbar(cmd, editor);
+      }
+    });
+  }
 
-  window.onSave = async function () {
-    const newTitle = titleInput.value.trim();
-    const htmlContent = editor.innerHTML;
-    if (!newTitle) {
-      alert('Title is required, can only contain letters, numbers, and spaces, and must be at most 100 characters.');
-      return;
-    }
-    if (!/^[A-Za-z0-9 ]+$/.test(newTitle) || newTitle.length > 100) {
-      alert('Title is required, can only contain letters, numbers, and spaces, and must be at most 100 characters.');
-      return;
-    }
-    if (state.mode === 'add') {
-      try {
-        const res = await fetch(`${API_BASE}/articles`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title: newTitle, content: htmlContent })
-        });
-        if (res.ok) {
-          lastSavedContent = htmlContent;
-          state.selected = newTitle;
-          await fetchArticles();
-        } else {
-          const err = await res.json();
-          alert(err.error || 'Failed to create article');
-        }
-      } catch (e) {
-        alert('Network or JS error during save');
-      }
-    } else {
-      try {
-        const oldTitle = state.selected;
-        const res = await fetch(`${API_BASE}/articles/${oldTitle}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title: newTitle, content: htmlContent })
-        });
-        if (res.ok) {
-          lastSavedContent = htmlContent;
-          state.selected = newTitle;
-          await fetchArticles();
-        } else {
-          const err = await res.json();
-          alert(err.error || 'Failed to update article');
-        }
-      } catch (e) {
-        alert('Network or JS error during update: ' + (e && e.message ? e.message : e));
-      }
-    }
-  };
-  renderTopBar();
+  // Set state
+  state.mode = 'edit';
+  state.unsaved = false;
 }
 
 function onEdit() {
