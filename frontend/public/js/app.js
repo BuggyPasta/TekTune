@@ -227,59 +227,70 @@ function onAdd() {
 }
 
 function renderAddArticleUI() {
-  // --- AREA B1: Toolbar + Save/Close ---
-  const left = document.getElementById('toolbar-left');
-  const right = document.getElementById('toolbar-right');
-  if (left) left.innerHTML = '';
-  if (right) right.innerHTML = '';
-  // Toolbar (left)
-  const toolbar = renderToolbar();
-  if (left) left.appendChild(toolbar);
-  // Save/Close (right)
-  if (right) {
-    right.appendChild(actionButton('close', 'Close', onClose));
-    right.appendChild(actionButton('save', 'Save', onSave));
-  }
+  try {
+    // --- AREA B1: Toolbar + Save/Close ---
+    const left = document.getElementById('toolbar-left');
+    const right = document.getElementById('toolbar-right');
+    if (left) left.innerHTML = '';
+    if (right) right.innerHTML = '';
+    // Toolbar (left)
+    const toolbar = renderToolbar();
+    if (left) left.appendChild(toolbar);
+    // Save/Close (right)
+    if (right) {
+      right.appendChild(actionButton('close', 'Close', onClose));
+      right.appendChild(actionButton('save', 'Save', onSave));
+    }
 
-  // --- AREA B2: Title input + Editor ---
-  const areaB2 = document.getElementById('article-content');
-  // Remove all children
-  while (areaB2 && areaB2.firstChild) areaB2.removeChild(areaB2.firstChild);
-  // Title input
-  const titleInput = document.createElement('input');
-  titleInput.type = 'text';
-  titleInput.className = 'editor-title';
-  titleInput.placeholder = 'Enter article title...';
-  titleInput.maxLength = 100;
-  if (areaB2) areaB2.appendChild(titleInput);
-  // Main text editor
-  const editor = document.createElement('div');
-  editor.className = 'editor-area editing';
-  editor.contentEditable = true;
-  editor.spellcheck = true;
-  editor.setAttribute('placeholder', 'Write your article here...');
-  if (areaB2) areaB2.appendChild(editor);
-  // Focus title input
-  setTimeout(() => titleInput.focus(), 0);
-  // Attach toolbar actions to this editor
-  if (toolbar) {
-    toolbar.onclick = (e) => {
-      if (e.target.closest('button')) {
-        const cmd = e.target.closest('button').dataset.cmd;
-        handleToolbar(cmd, editor);
+    // --- AREA B2: Title input + Editor ---
+    const areaB2 = document.getElementById('article-content');
+    // Remove all children
+    while (areaB2 && areaB2.firstChild) areaB2.removeChild(areaB2.firstChild);
+    // Title input
+    const titleInput = document.createElement('input');
+    titleInput.type = 'text';
+    titleInput.className = 'editor-title';
+    titleInput.placeholder = 'Enter article title...';
+    titleInput.maxLength = 100;
+    if (areaB2) areaB2.appendChild(titleInput);
+    // Main text editor
+    const editor = document.createElement('div');
+    editor.className = 'editor-area editing';
+    editor.contentEditable = true;
+    editor.spellcheck = true;
+    editor.setAttribute('placeholder', 'Write your article here...');
+    if (areaB2) areaB2.appendChild(editor);
+    // Focus title input
+    setTimeout(() => titleInput.focus(), 0);
+    // Attach toolbar actions to this editor
+    if (toolbar) {
+      toolbar.onclick = (e) => {
+        if (e.target.closest('button')) {
+          const cmd = e.target.closest('button').dataset.cmd;
+          handleToolbar(cmd, editor);
+        }
+      };
+    }
+    // Attach Save/Close event handlers again (in case buttons were replaced)
+    if (right) {
+      const closeBtn = right.querySelector('.action-btn:nth-child(1)');
+      const saveBtn = right.querySelector('.action-btn:nth-child(2)');
+      if (closeBtn) closeBtn.onclick = onClose;
+      if (saveBtn) saveBtn.onclick = onSave;
+    }
+    // Fallback: if any element is missing, show error and log
+    if (!left || !right || !areaB2 || !titleInput || !editor) {
+      if (areaB2) {
+        areaB2.innerHTML = '<div style="color:#ff4444;padding:2em;text-align:center;font-size:1.2em;">Error: Could not render Add Article UI. Please check the console for details.</div>';
       }
-    };
-  }
-  // Attach Save/Close event handlers again (in case buttons were replaced)
-  if (right) {
-    const closeBtn = right.querySelector('.action-btn:nth-child(1)');
-    const saveBtn = right.querySelector('.action-btn:nth-child(2)');
-    if (closeBtn) closeBtn.onclick = onClose;
-    if (saveBtn) saveBtn.onclick = onSave;
-  }
-  // Fallback: if any element is missing, re-render the UI
-  if (!left || !right || !areaB2 || !titleInput || !editor) {
-    setTimeout(renderAddArticleUI, 0);
+      console.error('Add Article UI render error:', { left, right, areaB2, titleInput, editor });
+    }
+  } catch (err) {
+    const areaB2 = document.getElementById('article-content');
+    if (areaB2) {
+      areaB2.innerHTML = '<div style="color:#ff4444;padding:2em;text-align:center;font-size:1.2em;">Error: Exception while rendering Add Article UI. Please check the console for details.</div>';
+    }
+    console.error('Exception in renderAddArticleUI:', err);
   }
 }
 
