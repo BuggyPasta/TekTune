@@ -355,12 +355,28 @@ function showSaveChangesModal(onYes, onNo) {
       <h3>Save changes?</h3>
       <p>Do you want to save your changes before closing?</p>
       <div class="modal-buttons">
-        <button class="modal-btn" onclick="this.closest('.modal').remove(); ${onYes}">Yes please</button>
-        <button class="modal-btn" onclick="this.closest('.modal').remove(); ${onNo}">No, thank you</button>
+        <button class="modal-btn" id="yes-btn">Yes please</button>
+        <button class="modal-btn" id="no-btn">No, thank you</button>
       </div>
     </div>
   `;
   modalRoot.appendChild(modal);
+  
+  // Add proper event handlers
+  modal.querySelector('#yes-btn').onclick = () => {
+    modal.remove();
+    onSave();
+    state.mode = 'view';
+    renderTopBar();
+    renderContentArea('article');
+  };
+  
+  modal.querySelector('#no-btn').onclick = () => {
+    modal.remove();
+    state.mode = 'view';
+    renderTopBar();
+    renderContentArea('article');
+  };
 }
 
 // --- Robust onDelete ---
@@ -379,10 +395,7 @@ function onClose() {
     const currentContent = editor ? editor.innerHTML : '';
     const currentTitle = titleInput ? (titleInput.value || titleInput.innerText) : '';
     if ((currentContent && currentContent !== (state.lastSavedContent || '')) || (currentTitle && currentTitle !== (state.lastSavedTitle || ''))) {
-      showSaveChangesModal(
-        'onSave(); state.mode = "view"; renderTopBar(); renderContentArea("article");',
-        'state.mode = "view"; renderTopBar(); renderContentArea("article");'
-      );
+      showSaveChangesModal();
       return;
     }
   }

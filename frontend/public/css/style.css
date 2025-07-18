@@ -158,23 +158,31 @@ html, body {
   border: 1px solid var(--accent);
   cursor: pointer;
   transition: background var(--transition);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
 .toolbar-grid button:hover {
-  background: var(--accent);
-  color: #fff;
+  /* Remove hover effect - keep same as normal state */
 }
 .toolbar-icon {
-  font-size: 1.3em;
-  margin-bottom: 0.2em;
+  font-size: 1.1em;
+  margin-bottom: 0.1em;
   display: block;
+  line-height: 1;
 }
 .toolbar-label {
-  font-size: 0.85em;
-  color: #fff;
+  font-size: 0.7em;
+  color: inherit;
   text-align: center;
-  line-height: 1.1;
+  line-height: 1;
   word-break: break-word;
   display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 /* Action Buttons */
 .action-btn {
@@ -197,7 +205,7 @@ html, body {
   margin-right: 0.5em;
 }
 .action-btn:hover {
-  background: var(--link);
+  /* Remove hover effect - keep same as normal state */
 }
 /* AREA B2: Article Content */
 #article-content.area-b2 {
@@ -265,7 +273,7 @@ html, body {
   margin-right: 0.3em;
 }
 .copy-btn.copied, .copy-btn:hover {
-  background: var(--link);
+  background: var(--accent);
   opacity: 1;
 }
 
@@ -365,7 +373,7 @@ html, body {
   transition: background var(--transition);
 }
 .modal-btn:hover {
-  background: var(--link);
+  /* Remove hover effect - keep same as normal state */
 }
 /* Responsive Design */
 @media (max-width: 900px) {
