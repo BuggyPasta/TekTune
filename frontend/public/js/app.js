@@ -348,27 +348,19 @@ function showDeleteModal(title) {
 // --- Save Changes Modal (for edit/close) ---
 function showSaveChangesModal(onYes, onNo) {
   const modalRoot = getModalRoot();
-  modalRoot.innerHTML = `
-    <div class="modal">
-      <div class="modal-content">
-        <div class="delete-modal-texts">
-          <div class="delete-modal-line1">Save changes?</div>
-        </div>
-        <div class="delete-modal-buttons">
-          <button id="save-changes-yes" class="action-btn">Yes please</button>
-          <button id="save-changes-no" class="action-btn">No, thank you</button>
-        </div>
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+  modal.innerHTML = `
+    <div class="modal-content">
+      <h3>Save changes?</h3>
+      <p>Do you want to save your changes before closing?</p>
+      <div class="modal-buttons">
+        <button class="modal-btn" onclick="this.closest('.modal').remove(); ${onYes}">Yes please</button>
+        <button class="modal-btn" onclick="this.closest('.modal').remove(); ${onNo}">No, thank you</button>
       </div>
     </div>
   `;
-  document.getElementById('save-changes-yes').onclick = () => {
-    modalRoot.innerHTML = '';
-    onYes();
-  };
-  document.getElementById('save-changes-no').onclick = () => {
-    modalRoot.innerHTML = '';
-    onNo();
-  };
+  modalRoot.appendChild(modal);
 }
 
 // --- Robust onDelete ---
@@ -387,17 +379,16 @@ function onClose() {
     const currentContent = editor ? editor.innerHTML : '';
     const currentTitle = titleInput ? (titleInput.value || titleInput.innerText) : '';
     if ((currentContent && currentContent !== (state.lastSavedContent || '')) || (currentTitle && currentTitle !== (state.lastSavedTitle || ''))) {
-      showSaveChangesModal(() => onSave(), () => {
-        state.mode = 'view';
-        renderTopBar();
-        renderContentArea('article'); // Changed from renderArticle() to renderContentArea('article')
-      });
+      showSaveChangesModal(
+        'onSave(); state.mode = "view"; renderTopBar(); renderContentArea("article");',
+        'state.mode = "view"; renderTopBar(); renderContentArea("article");'
+      );
       return;
     }
   }
   state.mode = 'view';
   renderTopBar();
-  renderContentArea('article'); // Changed from renderArticle() to renderContentArea('article')
+  renderContentArea('article');
 }
 
 // --- Robust onSave ---
@@ -421,7 +412,8 @@ function onSave() {
         state.mode = 'view';
         fetchArticles();
         renderTopBar();
-        renderContentArea('article'); // Changed from renderArticle() to renderContentArea('article')
+        renderContentArea('article');
+        showSaveConfirmation();
       } else {
         alert('Failed to create article');
       }
@@ -438,7 +430,8 @@ function onSave() {
         state.mode = 'view';
         fetchArticles();
         renderTopBar();
-        renderContentArea('article'); // Changed from renderArticle() to renderContentArea('article')
+        renderContentArea('article');
+        showSaveConfirmation();
       } else {
         alert('Failed to update article');
       }
@@ -495,13 +488,13 @@ function handleToolbar(cmd, editor) {
       const icon = document.createElement('span');
       icon.className = 'warning-icon';
       icon.innerHTML = '&#9888;';
-      const content = document.createElement('span');
-      content.className = 'warning-content';
       const divider = document.createElement('span');
       divider.className = 'warning-divider';
-      content.appendChild(divider);
+      const content = document.createElement('span');
+      content.className = 'warning-content';
       content.appendChild(selected);
       box.appendChild(icon);
+      box.appendChild(divider);
       box.appendChild(content);
       range.insertNode(box);
       break;
@@ -528,18 +521,29 @@ function handleToolbar(cmd, editor) {
       imgInput.onchange = async (e) => {
         const file = imgInput.files[0];
         if (!file) return;
-        const formData = new FormData();
-        formData.append('file', file);
-        const res = await fetch(`${API_BASE}/images/${state.selected || 'untitled'}`, { method: 'POST', body: formData });
-        const data = await res.json();
-        if (data.success) {
-          const img = document.createElement('img');
-          img.src = data.url;
-          img.style.maxWidth = '100%';
-          img.style.height = 'auto';
-          insertAtCursor(editor, img.outerHTML);
-        } else {
-          alert('Image upload failed');
+        try {
+          const formData = new FormData();
+          formData.append('file', file);
+          const res = await fetch(`${API_BASE}/images/${state.selected || 'untitled'}`, { 
+            method: 'POST', 
+            body: formData 
+          });
+          if (!res.ok) {
+            throw new Error(`HTTP ${res.status}`);
+          }
+          const data = await res.json();
+          if (data.success) {
+            const img = document.createElement('img');
+            img.src = data.url;
+            img.style.maxWidth = '100%';
+            img.style.height = 'auto';
+            insertAtCursor(editor, img.outerHTML);
+          } else {
+            alert('Image upload failed: ' + (data.error || 'Unknown error'));
+          }
+        } catch (error) {
+          console.error('Image upload error:', error);
+          alert('Image upload failed: ' + error.message);
         }
       };
       imgInput.click();
@@ -936,7 +940,10 @@ function showSaveConfirmation() {
     msg.style.borderRadius = '8px';
     msg.style.fontWeight = 'bold';
     msg.style.zIndex = '2000';
+    msg.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
     areaB2.appendChild(msg);
-    setTimeout(() => { if (msg.parentNode) msg.parentNode.removeChild(msg); }, 1500);
+    setTimeout(() => { 
+      if (msg.parentNode) msg.parentNode.removeChild(msg); 
+    }, 2000);
   }
 } 
