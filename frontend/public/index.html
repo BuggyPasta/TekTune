@@ -5,35 +5,39 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TekTune</title>
   <link rel="stylesheet" href="/css/style.css">
-  <!-- Prism.js CSS for syntax highlighting -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
   <link rel="icon" type="image/svg+xml" href="./icons/tektune.svg">
 </head>
 <body>
-  <div id="app">
-    <header class="top-bar">
-      <div class="top-bar-left">
-        <img src="./icons/tektune.svg" alt="TekTune Logo" class="logo" />
-        <span class="app-name">TekTune</span>
+  <div id="app-root">
+    <!-- AREA A: Sidebar -->
+    <aside id="sidebar" class="area-a">
+      <div class="sidebar-header">
+        <img src="./icons/tektune.svg" alt="TekTune Logo" class="sidebar-logo" />
+        <span class="sidebar-title">TekTune</span>
       </div>
-      <div class="top-bar-right" id="action-buttons">
-        <!-- Action buttons will be rendered here by JS -->
-      </div>
-    </header>
-    <main class="main-layout">
-      <aside class="sidebar" id="article-index">
-        <!-- Article index will be rendered here by JS -->
-      </aside>
-      <section class="content" id="content-area">
-        <!-- Article content or editor will be rendered here by JS -->
+      <nav id="article-list" class="sidebar-articles">
+        <!-- Article buttons will be rendered here by JS -->
+      </nav>
+    </aside>
+    <!-- AREA B: Main Content -->
+    <main id="main-content" class="area-b">
+      <!-- AREA B1: Top Bar -->
+      <section id="topbar" class="area-b1">
+        <!--
+          In read-only mode: show Add Article, Edit, Delete buttons (right-aligned)
+          In edit mode: show toolbar (left-aligned), Close and Save buttons (right-aligned)
+          All buttons will be rendered by JS
+        -->
+        <div id="toolbar-left" class="toolbar-left"></div>
+        <div id="toolbar-right" class="toolbar-right"></div>
+      </section>
+      <!-- AREA B2: Article Content -->
+      <section id="article-content" class="area-b2">
+        <div id="article-title" class="article-title"></div>
+        <div id="editor-area" class="editor-area" contenteditable="true" spellcheck="true"></div>
       </section>
     </main>
   </div>
-  <!-- Marked.js for Markdown rendering -->
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <!-- Prism.js for syntax highlighting -->
-  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-markdown.min.js"></script>
   <script src="/js/app.js"></script>
 </body>
 </html> 
