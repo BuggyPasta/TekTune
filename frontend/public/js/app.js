@@ -418,12 +418,13 @@ function showSaveChangesModal(onYes, onNo) {
   // Add proper event handlers
   modal.querySelector('#yes-btn').onclick = () => {
     modal.remove();
+    // Save first, then close
     onSave();
   };
   
   modal.querySelector('#no-btn').onclick = () => {
     modal.remove();
-    disableEditor();
+    // Close without saving
     state.mode = 'view';
     renderTopBar();
     renderContentArea('article');
@@ -450,8 +451,8 @@ function onClose() {
       return;
     }
   }
+  // Close without saving
   state.mode = 'view';
-  disableEditor();
   renderTopBar();
   renderContentArea('article');
 }
@@ -491,7 +492,6 @@ function onSave() {
       if (res.ok) {
         state.mode = 'view';
         state.selected = safeTitle;
-        disableEditor();
         fetchArticles();
         renderTopBar();
         renderContentArea('article');
@@ -511,7 +511,6 @@ function onSave() {
       if (res.ok) {
         state.mode = 'view';
         state.selected = safeTitle;
-        disableEditor();
         fetchArticles();
         renderTopBar();
         renderContentArea('article');

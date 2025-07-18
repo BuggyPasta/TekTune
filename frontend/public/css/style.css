@@ -54,6 +54,7 @@ html, body {
 .sidebar-logo {
   width: 32px;
   height: 32px;
+  filter: brightness(0) saturate(100%) invert(67%) sepia(100%) saturate(1000%) hue-rotate(180deg) brightness(1) contrast(1);
 }
 .sidebar-title {
   font-size: 1.5rem;
@@ -110,11 +111,11 @@ html, body {
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  height: var(--topbar-height);
+  height: auto;
   min-height: var(--topbar-height);
   background: var(--bg-toolbar);
   border-bottom: 2px solid var(--accent);
-  padding: 0 1.5em;
+  padding: 0.7em 1.5em;
   z-index: 3;
   box-sizing: border-box;
 }
