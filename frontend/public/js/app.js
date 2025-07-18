@@ -243,7 +243,8 @@ function renderAddArticleUI() {
 
   // --- AREA B2: Title input + Editor ---
   const areaB2 = document.getElementById('article-content');
-  if (areaB2) areaB2.innerHTML = '';
+  // Remove all children
+  while (areaB2 && areaB2.firstChild) areaB2.removeChild(areaB2.firstChild);
   // Title input
   const titleInput = document.createElement('input');
   titleInput.type = 'text';
@@ -268,6 +269,13 @@ function renderAddArticleUI() {
         handleToolbar(cmd, editor);
       }
     };
+  }
+  // Attach Save/Close event handlers again (in case buttons were replaced)
+  if (right) {
+    const closeBtn = right.querySelector('.action-btn:nth-child(1)');
+    const saveBtn = right.querySelector('.action-btn:nth-child(2)');
+    if (closeBtn) closeBtn.onclick = onClose;
+    if (saveBtn) saveBtn.onclick = onSave;
   }
   // Fallback: if any element is missing, re-render the UI
   if (!left || !right || !areaB2 || !titleInput || !editor) {
