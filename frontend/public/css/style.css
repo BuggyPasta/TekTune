@@ -143,11 +143,13 @@ html, body {
   flex-direction: row;
   gap: 0.3em;
   width: auto;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  align-items: center;
 }
 .toolbar-grid button {
-  min-width: 42px;
-  max-width: 56px;
+  min-width: 48px;
+  max-width: 64px;
   height: 42px;
   font-size: 0.9em;
   padding: 0.2em 0.2em;
@@ -169,20 +171,12 @@ html, body {
 }
 .toolbar-icon {
   font-size: 1.1em;
-  margin-bottom: 0.1em;
+  margin-bottom: 0;
   display: block;
   line-height: 1;
 }
 .toolbar-label {
-  font-size: 0.7em;
-  color: inherit;
-  text-align: center;
-  line-height: 1;
-  word-break: break-word;
-  display: block;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  display: none;
 }
 /* Action Buttons */
 .action-btn {
@@ -225,6 +219,8 @@ html, body {
   margin-bottom: 0.7em;
   margin-top: 0.2em;
   line-height: 1.1;
+  border-bottom: 2px solid var(--accent);
+  padding-bottom: 0.3em;
 }
 .editor-area {
   background: var(--bg-toolbar);
@@ -241,6 +237,21 @@ html, body {
 }
 .editor-area:focus {
   border: 1.5px solid var(--accent);
+}
+.editor-area[contenteditable="false"] {
+  background: var(--bg-content);
+  border: 1.5px solid var(--bg-toolbar);
+  cursor: default;
+}
+.editor-area a {
+  color: var(--link);
+  text-decoration: none;
+  border-bottom: 1px solid var(--link);
+  transition: color var(--transition);
+}
+.editor-area a:hover {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
 }
 /* Copy Button for Code Blocks */
 .code-block-wrapper {
@@ -324,6 +335,7 @@ html, body {
   align-self: stretch;
   position: static;
   flex-shrink: 0;
+  width: 2px;
 }
 .warning-box .warning-content {
   flex: 1;
@@ -399,6 +411,13 @@ html, body {
     padding: 0.7em 0.5em;
     height: auto;
     min-height: 0;
+  }
+  .toolbar-left {
+    flex-wrap: wrap;
+    gap: 0.3em;
+  }
+  .toolbar-right {
+    flex-shrink: 0;
   }
   #article-content.area-b2 {
     padding: 0.7rem 0.2rem;

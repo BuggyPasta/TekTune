@@ -116,7 +116,7 @@ function setBodyScroll() {
 // Call setBodyScroll in renderContentArea and when switching modes
 async function renderContentArea(mode) {
   setBodyScroll();
-  const area = $('#content-area');
+  const area = $('#article-content');
   // Set class for scrolling behavior
   if (mode === 'article' && state.mode === 'edit') {
     area.className = 'content editing';
@@ -154,6 +154,10 @@ async function renderContentArea(mode) {
       link.setAttribute('target', '_blank');
       link.setAttribute('rel', 'noopener noreferrer');
     });
+    return;
+  }
+  if (mode === 'article' && !state.selected) {
+    area.innerHTML = `<div class="choose-msg">Choose from an article on the list to begin.</div>`;
     return;
   }
 }
@@ -423,6 +427,7 @@ function onSave() {
     }).then(res => {
       if (res.ok) {
         state.mode = 'view';
+        state.selected = title;
         fetchArticles();
         renderTopBar();
         renderContentArea('article');
@@ -441,6 +446,7 @@ function onSave() {
     }).then(res => {
       if (res.ok) {
         state.mode = 'view';
+        state.selected = title;
         fetchArticles();
         renderTopBar();
         renderContentArea('article');
@@ -471,57 +477,101 @@ function toMarkdown(editor) {
 function handleToolbar(cmd, editor) {
   document.execCommand('styleWithCSS', false, false);
   switch (cmd) {
-    case 'h1': document.execCommand('formatBlock', false, 'H1'); break;
-    case 'h2': document.execCommand('formatBlock', false, 'H2'); break;
-    case 'h3': document.execCommand('formatBlock', false, 'H3'); break;
+    case 'h1': 
+    case 'h2': 
+    case 'h3': {
+      const sel = window.getSelection();
+      if (!sel.rangeCount) return;
+      const range = sel.getRangeAt(0);
+      const selected = range.extractContents();
+      const parent = selected.querySelector('h1, h2, h3') || range.commonAncestorContainer.closest('h1, h2, h3');
+      if (parent) {
+        // Remove heading - convert to normal text
+        const text = parent.textContent;
+        const textNode = document.createTextNode(text);
+        parent.parentNode.replaceChild(textNode, parent);
+      } else {
+        // Add heading
+        const heading = document.createElement(cmd.toUpperCase());
+        heading.appendChild(selected);
+        range.insertNode(heading);
+      }
+      break;
+    }
     case 'bold': document.execCommand('bold'); break;
     case 'italic': document.execCommand('italic'); break;
     case 'underline': document.execCommand('underline'); break;
     case 'code': {
-      // Wrap selection in <pre><code>...</code></pre> without splitting lines
       const sel = window.getSelection();
       if (!sel.rangeCount) return;
       const range = sel.getRangeAt(0);
-      const selected = range.extractContents();
-      const pre = document.createElement('pre');
-      const code = document.createElement('code');
-      code.appendChild(selected);
-      pre.appendChild(code);
-      range.insertNode(pre);
+      const parent = range.commonAncestorContainer.closest('pre');
+      if (parent) {
+        // Remove code - convert to normal text
+        const text = parent.textContent;
+        const textNode = document.createTextNode(text);
+        parent.parentNode.replaceChild(textNode, parent);
+      } else {
+        // Add code
+        const selected = range.extractContents();
+        const pre = document.createElement('pre');
+        const code = document.createElement('code');
+        code.appendChild(selected);
+        pre.appendChild(code);
+        range.insertNode(pre);
+      }
       break;
     }
     case 'warning': {
-      // Insert warning box with divider and red background
       const sel = window.getSelection();
       if (!sel.rangeCount) return;
       const range = sel.getRangeAt(0);
-      const selected = range.extractContents();
-      const box = document.createElement('div');
-      box.className = 'warning-box';
-      const icon = document.createElement('span');
-      icon.className = 'warning-icon';
-      icon.innerHTML = '&#9888;';
-      const divider = document.createElement('span');
-      divider.className = 'warning-divider';
-      const content = document.createElement('span');
-      content.className = 'warning-content';
-      content.appendChild(selected);
-      box.appendChild(icon);
-      box.appendChild(divider);
-      box.appendChild(content);
-      range.insertNode(box);
+      const parent = range.commonAncestorContainer.closest('.warning-box');
+      if (parent) {
+        // Remove warning - convert to normal text
+        const text = parent.querySelector('.warning-content').textContent;
+        const textNode = document.createTextNode(text);
+        parent.parentNode.replaceChild(textNode, parent);
+      } else {
+        // Add warning
+        const selected = range.extractContents();
+        const box = document.createElement('div');
+        box.className = 'warning-box';
+        const icon = document.createElement('span');
+        icon.className = 'warning-icon';
+        icon.innerHTML = '&#9888;';
+        const divider = document.createElement('span');
+        divider.className = 'warning-divider';
+        const content = document.createElement('span');
+        content.className = 'warning-content';
+        content.appendChild(selected);
+        box.appendChild(icon);
+        box.appendChild(divider);
+        box.appendChild(content);
+        range.insertNode(box);
+      }
       break;
     }
     case 'link': {
       const sel = window.getSelection();
       if (!sel.rangeCount) return;
-      const selectedText = sel.toString().trim();
-      let url = selectedText;
-      if (!isValidURL(selectedText)) {
-        url = prompt('Enter URL:');
-        if (!url) return;
+      const range = sel.getRangeAt(0);
+      const link = range.commonAncestorContainer.closest('a');
+      if (link) {
+        // Remove link - convert to normal text
+        const text = link.textContent;
+        const textNode = document.createTextNode(text);
+        link.parentNode.replaceChild(textNode, link);
+      } else {
+        // Add link
+        const selectedText = sel.toString().trim();
+        let url = selectedText;
+        if (!isValidURL(selectedText)) {
+          url = prompt('Enter URL:');
+          if (!url) return;
+        }
+        document.execCommand('createLink', false, url);
       }
-      document.execCommand('createLink', false, url);
       break;
     }
     case 'ol': document.execCommand('insertOrderedList'); break;
@@ -542,7 +592,12 @@ function handleToolbar(cmd, editor) {
             body: formData 
           });
           if (!res.ok) {
-            throw new Error(`HTTP ${res.status}`);
+            if (res.status === 404) {
+              alert('Image upload failed: Server endpoint not found. Please check if the backend is running.');
+            } else {
+              throw new Error(`HTTP ${res.status}`);
+            }
+            return;
           }
           const data = await res.json();
           if (data.success) {
@@ -562,7 +617,22 @@ function handleToolbar(cmd, editor) {
       imgInput.click();
       break;
     }
-    case 'quote': document.execCommand('formatBlock', false, 'BLOCKQUOTE'); break;
+    case 'quote': {
+      const sel = window.getSelection();
+      if (!sel.rangeCount) return;
+      const range = sel.getRangeAt(0);
+      const parent = range.commonAncestorContainer.closest('blockquote');
+      if (parent) {
+        // Remove quote - convert to normal text
+        const text = parent.textContent;
+        const textNode = document.createTextNode(text);
+        parent.parentNode.replaceChild(textNode, parent);
+      } else {
+        // Add quote
+        document.execCommand('formatBlock', false, 'BLOCKQUOTE');
+      }
+      break;
+    }
     case 'hr': document.execCommand('insertHorizontalRule'); break;
   }
 }
