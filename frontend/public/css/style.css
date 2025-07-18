@@ -44,8 +44,11 @@ html, body {
   display: flex;
   align-items: center;
   gap: 0.7em;
-  padding: 1.2em 1em 1em 1em;
-  border-bottom: 1px solid var(--accent);
+  padding: 0 1em;
+  border-bottom: 2px solid var(--accent);
+  height: var(--topbar-height);
+  min-height: var(--topbar-height);
+  box-sizing: border-box;
 }
 .sidebar-logo {
   width: 32px;
@@ -109,9 +112,10 @@ html, body {
   height: var(--topbar-height);
   min-height: var(--topbar-height);
   background: var(--bg-toolbar);
-  border-bottom: 1.5px solid var(--accent);
+  border-bottom: 2px solid var(--accent);
   padding: 0 1.5em;
   z-index: 3;
+  box-sizing: border-box;
 }
 .toolbar-left {
   display: flex;

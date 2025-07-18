@@ -19,19 +19,20 @@ function $(id) {
 }
 
 function renderTopBar() {
-  const right = $('action-buttons');
+  const left = $('toolbar-left');
+  const right = $('toolbar-right');
+  left.innerHTML = '';
   right.innerHTML = '';
-  if (state.mode === 'add' && state.creationStep === 'title') {
-    // No buttons in topbar during title entry
-    return;
-  }
-  if (state.mode === 'edit') {
+  if (state.mode === 'edit' || state.mode === 'add') {
+    // Toolbar (left)
+    left.appendChild(renderToolbar());
+    // Close/Save (right)
     right.appendChild(actionButton('close', 'Close', onClose));
-    right.appendChild(actionButton('save', 'Save', window.onSave));
+    right.appendChild(actionButton('save', 'Save', onSave));
   } else {
+    // Read-only: Add always visible
     right.appendChild(actionButton('add', 'Add Article', onAdd));
-    // Show Edit and Delete only if an article is selected and in read-only mode
-    if (state.selected && state.mode === 'view') {
+    if (state.selected) {
       right.appendChild(actionButton('edit', 'Edit', onEdit));
       right.appendChild(actionButton('delete', 'Delete', onDelete));
     }
@@ -60,7 +61,7 @@ async function fetchArticles() {
 }
 
 function renderSidebar() {
-  const sidebar = $('article-index');
+  const sidebar = $('#article-list');
   sidebar.innerHTML = '';
   if (state.articles.length === 0) {
     const msg = document.createElement('div');
@@ -113,7 +114,7 @@ function setBodyScroll() {
 // Call setBodyScroll in renderContentArea and when switching modes
 async function renderContentArea(mode) {
   setBodyScroll();
-  const area = $('content-area');
+  const area = $('#content-area');
   // Set class for scrolling behavior
   if (mode === 'article' && state.mode === 'edit') {
     area.className = 'content editing';
@@ -227,7 +228,7 @@ function onAdd() {
 }
 
 function renderTitleInput() {
-  const area = $('content-area');
+  const area = $('#content-area');
   area.innerHTML = '';
   const wrapper = document.createElement('div');
   wrapper.className = 'title-input-wrapper';
@@ -305,7 +306,7 @@ function renderEditor({ title, content }) {
   state.creationStep = 'editor';
   lastSavedContent = content;
   console.log('renderEditor called', { title, content });
-  const area = $('content-area');
+  const area = $('#content-area');
   area.innerHTML = '';
 
   // --- Frame C: Title + Toolbar ---
@@ -626,7 +627,7 @@ function onDelete() {
 }
 
 function showDeleteModal(title) {
-  const area = $('content-area');
+  const area = $('#content-area');
   const modal = document.createElement('div');
   modal.className = 'modal';
   modal.innerHTML = `
@@ -699,7 +700,7 @@ function onClose() {
 
 // 2. Save changes modal: blue buttons, ensure they work
 function showSaveChangesModal() {
-  const area = $('content-area');
+  const area = $('#content-area');
   const modal = document.createElement('div');
   modal.className = 'modal';
   modal.innerHTML = `
